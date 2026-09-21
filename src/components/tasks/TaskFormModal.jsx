@@ -55,9 +55,8 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       setPriority('medium');
       setStatus('todo');
       setDueDate(defaultDate || format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'));
-      setCreatedAt(format(new Date(), 'yyyy-MM-dd'));
-      setAssignedName('Alex Morgan');
-      setAssignedEmail('alex.morgan@zenith.design');
+      setAssignedName('');
+      setAssignedEmail('');
       setHasHelper(false);
       setHelperName('');
       setHelperTopic('');

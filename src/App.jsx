@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { TaskProvider } from './context/TaskContext';
 import { Navbar } from './components/common/Navbar';
 import { StatsOverview } from './components/common/StatsOverview';
@@ -8,9 +8,11 @@ import { TaskListView } from './components/tasks/TaskListView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { AuthModal } from './components/auth/AuthModal';
-import { FirebaseConfigModal } from './components/common/FirebaseConfigModal';
+import { AuthPage } from './components/auth/AuthPage';
 
 function MainLayout() {
+  const { currentUser, loading } = useAuth();
+
   const [currentView, setCurrentView] = useState('list'); // 'list' | 'calendar'
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('zenith_theme') || 'dark';
@@ -20,9 +22,7 @@ function MainLayout() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [defaultDate, setDefaultDate] = useState(null);
-
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
 
   // Sync theme with document
   useEffect(() => {
@@ -46,6 +46,21 @@ function MainLayout() {
     setIsTaskModalOpen(true);
   };
 
+  // 1. Loading State
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', color: 'var(--text-muted)' }}>
+        <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>Loading workspace...</p>
+      </div>
+    );
+  }
+
+  // 2. Open Login Page First if user is not authenticated
+  if (!currentUser) {
+    return <AuthPage theme={theme} toggleTheme={toggleTheme} />;
+  }
+
+  // 3. Authenticated Workspace
   return (
     <div className="app-container">
       {/* Top Navigation */}
@@ -56,7 +71,6 @@ function MainLayout() {
         toggleTheme={toggleTheme}
         onOpenNewTask={() => handleOpenNewTask()}
         onOpenAuth={() => setIsAuthModalOpen(true)}
-        onOpenFirebaseConfig={() => setIsFirebaseModalOpen(true)}
       />
 
       {/* Main Workspace Area */}
@@ -92,11 +106,6 @@ function MainLayout() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-      />
-
-      <FirebaseConfigModal
-        isOpen={isFirebaseModalOpen}
-        onClose={() => setIsFirebaseModalOpen(false)}
       />
     </div>
   );

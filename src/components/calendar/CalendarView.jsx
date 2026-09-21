@@ -9,11 +9,9 @@ import {
   addMonths, 
   subMonths, 
   isSameMonth, 
-  isToday,
-  isSameDay,
-  parseISO
+  isToday
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { CalendarDayModal } from './CalendarDayModal';
 
@@ -76,20 +74,20 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
     <div className="calendar-container">
       {/* Calendar Header */}
       <div className="calendar-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <h2 className="calendar-month-title">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
 
           <div className="calendar-nav-group">
-            <button className="btn-icon" onClick={handlePrevMonth} title="Previous Month">
-              <ChevronLeft size={16} />
+            <button className="btn-icon" style={{ width: '30px', height: '30px' }} onClick={handlePrevMonth} title="Previous Month">
+              <ChevronLeft size={15} />
             </button>
-            <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8125rem' }} onClick={handleToday}>
+            <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', height: '30px' }} onClick={handleToday}>
               Today
             </button>
-            <button className="btn-icon" onClick={handleNextMonth} title="Next Month">
-              <ChevronRight size={16} />
+            <button className="btn-icon" style={{ width: '30px', height: '30px' }} onClick={handleNextMonth} title="Next Month">
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
@@ -109,7 +107,7 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
           </div>
 
           {/* Perspective Filter */}
-          <div className="view-tabs" style={{ background: 'var(--bg-surface-elevated)' }}>
+          <div className="view-tabs">
             <button 
               className={`view-tab-btn ${calendarFilter === 'all' ? 'active' : ''}`}
               onClick={() => setCalendarFilter('all')}
@@ -162,29 +160,34 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
               key={dayKey}
               className={`calendar-day-cell ${!isCurrentMonth ? 'other-month' : ''} ${isCurrentDay ? 'is-today' : ''}`}
               onClick={() => handleDayClick(day)}
+              title={`${dayItems.length} tasks scheduled on ${dayKey}. Click to view details.`}
             >
-              <span className="calendar-day-number">
-                {format(day, 'd')}
-              </span>
+              <div className="calendar-cell-top">
+                <span className="calendar-day-number">
+                  {format(day, 'd')}
+                </span>
+                {visibleItems.length > 2 && (
+                  <span className="calendar-more-badge">
+                    +{visibleItems.length - 2}
+                  </span>
+                )}
+              </div>
 
               {/* Day Events Pills */}
               <div className="calendar-events-wrap">
-                {visibleItems.slice(0, 3).map((item, idx) => (
+                {visibleItems.slice(0, 2).map((item, idx) => (
                   <div
                     key={`${item.type}-${item.task.id}-${idx}`}
                     className={`calendar-event-pill ${item.type} ${item.task.status === 'completed' ? 'completed' : ''}`}
-                    title={`${item.type === 'due' ? 'Deadline' : 'Created'}: ${item.task.title}`}
                   >
-                    <span>{item.type === 'due' ? '🟠 Due:' : '🔵'}</span>
-                    <span>{item.task.title}</span>
+                    <span className="event-tag">
+                      {item.type === 'due' ? 'DUE' : 'NEW'}
+                    </span>
+                    <span className="event-text">
+                      {item.task.title}
+                    </span>
                   </div>
                 ))}
-
-                {visibleItems.length > 3 && (
-                  <span className="calendar-more-count">
-                    +{visibleItems.length - 3} more
-                  </span>
-                )}
               </div>
             </div>
           );

@@ -6,7 +6,6 @@ import {
   Plus, 
   Sun, 
   Moon, 
-  Database, 
   User, 
   LogOut 
 } from 'lucide-react';
@@ -18,10 +17,9 @@ export const Navbar = ({
   theme, 
   toggleTheme, 
   onOpenNewTask, 
-  onOpenAuth, 
-  onOpenFirebaseConfig 
+  onOpenAuth 
 }) => {
-  const { currentUser, logout, isFirebaseConnected } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   return (
     <header className="navbar">
@@ -58,16 +56,6 @@ export const Navbar = ({
 
         {/* Nav Actions */}
         <div className="nav-actions">
-          {/* Firebase Connection Status Pill */}
-          <button 
-            className={`firebase-badge ${isFirebaseConnected ? 'connected' : 'demo'}`}
-            onClick={onOpenFirebaseConfig}
-            title="Firebase Cloud Database Status"
-          >
-            <Database size={13} />
-            <span>{isFirebaseConnected ? 'Firebase Active' : 'Local / Demo'}</span>
-          </button>
-
           {/* Theme Toggle Button */}
           <button 
             className="btn-icon" 
@@ -86,12 +74,12 @@ export const Navbar = ({
             <span>New Task</span>
           </button>
 
-          {/* User Profile / Auth Button */}
+          {/* User Profile / Logout */}
           {currentUser ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div 
                 className="avatar" 
-                title={`${currentUser.displayName || currentUser.email} (${currentUser.isDemo ? 'Demo Mode' : 'Firebase Auth'})`}
+                title={currentUser.displayName || currentUser.email}
                 style={{ cursor: 'pointer' }}
                 onClick={onOpenAuth}
               >

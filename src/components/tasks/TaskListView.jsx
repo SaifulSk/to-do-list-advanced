@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { CheckSquare, Plus, AlertCircle } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { TaskCard } from './TaskCard';
 
@@ -14,8 +14,7 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
     setSearchQuery, 
     setFilterPriority, 
     setFilterStatus, 
-    setFilterNeedHelp,
-    resetDemoTasks 
+    setFilterNeedHelp 
   } = useTasks();
 
   const isFiltering = searchQuery || filterPriority !== 'all' || filterStatus !== 'all' || filterNeedHelp;
@@ -27,17 +26,13 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
           <CheckSquare size={32} />
         </div>
         <div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No tasks found</h3>
-          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Get started by creating your first task or reload sample tasks.</p>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No tasks yet</h3>
+          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Get started by creating your first task.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
           <button className="btn btn-primary" onClick={onOpenNewTask}>
             <Plus size={16} />
             <span>Create Task</span>
-          </button>
-          <button className="btn btn-secondary" onClick={resetDemoTasks}>
-            <RefreshCw size={15} />
-            <span>Load Demo Tasks</span>
           </button>
         </div>
       </div>
