@@ -18,11 +18,20 @@ import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
-  const { toggleTaskComplete, deleteTask, toggleTaskInProgress } = useTasks();
+  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isCompleted = task.status === 'completed';
   const isInProgress = task.status === 'in_progress';
+
+  // Instant Priority Cycler: Low -> Medium -> High -> Urgent -> Low
+  const handleCyclePriority = (e) => {
+    e.stopPropagation();
+    const priorityOrder = ['low', 'medium', 'high', 'urgent'];
+    const currentIndex = priorityOrder.indexOf(task.priority);
+    const nextPriority = priorityOrder[(currentIndex + 1) % priorityOrder.length];
+    updateTask(task.id, { priority: nextPriority });
+  };
 
   // Format Due Date helper
   const getDueDateDisplay = (dateString) => {
@@ -137,8 +146,12 @@ export const TaskCard = ({ task, onEdit }) => {
             </span>
           )}
 
-          {/* Priority Pill */}
-          <span className={`badge badge-${task.priority}`}>
+          {/* Priority Pill - Clickable to cycle instantly */}
+          <span 
+            className={`badge badge-${task.priority} priority-clickable`}
+            onClick={handleCyclePriority}
+            title={`Priority: ${task.priority.toUpperCase()}. Click to change priority.`}
+          >
             {getPriorityIcon(task.priority)}
             <span style={{ textTransform: 'capitalize' }}>{task.priority}</span>
           </span>
