@@ -87,15 +87,15 @@ export const TaskProvider = ({ children }) => {
 
   // Real-time Firestore sync for Tasks
   useEffect(() => {
-    if (!isFirebaseConnected || !currentUser) {
+    if (!isFirebaseConnected) {
       return;
     }
 
     setLoading(true);
     const unsubscribe = subscribeToUserTasks(
-      currentUser.uid,
+      currentUser ? currentUser.uid : null,
       (firestoreTasks) => {
-        if (Array.isArray(firestoreTasks) && firestoreTasks.length > 0) {
+        if (Array.isArray(firestoreTasks)) {
           setTasks(firestoreTasks);
         }
         setLoading(false);
@@ -117,7 +117,7 @@ export const TaskProvider = ({ children }) => {
 
     const unsubscribe = subscribeToAssignees(
       (firestoreAssignees) => {
-        if (Array.isArray(firestoreAssignees) && firestoreAssignees.length > 0) {
+        if (Array.isArray(firestoreAssignees)) {
           setAssignees(firestoreAssignees);
         }
       },
@@ -155,7 +155,7 @@ export const TaskProvider = ({ children }) => {
     setAssignees(prev => [...prev.filter(a => a.name.toLowerCase() !== cleanName.toLowerCase()), newAssignee]);
 
     // Persist to Firestore
-    if (isFirebaseConnected && currentUser) {
+    if (isFirebaseConnected) {
       try {
         const { id, ...dataToSave } = newAssignee;
         const docRef = await addAssigneeToFirestore(dataToSave);
@@ -171,7 +171,7 @@ export const TaskProvider = ({ children }) => {
   // Assignee Master: Delete Assignee
   const deleteAssignee = async (assigneeId) => {
     setAssignees(prev => prev.filter(a => a.id !== assigneeId));
-    if (isFirebaseConnected && currentUser) {
+    if (isFirebaseConnected) {
       try {
         await deleteAssigneeFromFirestore(assigneeId);
       } catch (err) {
@@ -195,7 +195,7 @@ export const TaskProvider = ({ children }) => {
     setTasks((prev) => [newTask, ...prev.filter(t => t.id !== tempId)]);
 
     // Persist to Firestore
-    if (isFirebaseConnected && currentUser) {
+    if (isFirebaseConnected) {
       try {
         const { id, ...cleanData } = newTask;
         const docRef = await addTaskToFirestore(cleanData);
@@ -213,7 +213,7 @@ export const TaskProvider = ({ children }) => {
   const updateTask = async (taskId, updates) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
 
-    if (isFirebaseConnected && currentUser) {
+    if (isFirebaseConnected) {
       try {
         await updateTaskInFirestore(taskId, updates);
       } catch (err) {
@@ -225,7 +225,7 @@ export const TaskProvider = ({ children }) => {
   // Delete Task (Optimistic UI)
   const deleteTask = async (taskId) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    if (isFirebaseConnected && currentUser) {
+    if (isFirebaseConnected) {
       try {
         await deleteTaskFromFirestore(taskId);
       } catch (err) {
