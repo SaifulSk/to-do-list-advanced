@@ -35,6 +35,9 @@ export const AuthPage = ({ theme, toggleTheme }) => {
 
   const formatErrorMessage = (errorStr) => {
     if (!errorStr) return null;
+    if (errorStr.includes('auth/configuration-not-found') || errorStr.includes('auth/operation-not-allowed')) {
+      return 'Email/Password sign-in is not enabled in your Firebase project. Please enable "Email/Password" in Firebase Console > Authentication > Sign-in method.';
+    }
     if (errorStr.includes('auth/invalid-credential') || errorStr.includes('auth/wrong-password')) {
       return 'Invalid email or password. Please check your credentials.';
     }
