@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Users, Plus, Trash2, ShieldCheck, Briefcase } from 'lucide-react';
+import { X, Users, Plus, Trash2, ShieldCheck, Briefcase, AlertTriangle } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 
 export const AssigneeMasterModal = ({ isOpen, onClose }) => {
@@ -8,6 +8,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
+  const [memberToDelete, setMemberToDelete] = useState(null);
   const nameInputRef = useRef(null);
 
   // Clear inputs whenever the modal opens or closes
@@ -15,6 +16,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
     setName('');
     setRole('');
     setError('');
+    setMemberToDelete(null);
     if (isOpen) {
       setTimeout(() => {
         nameInputRef.current?.focus();
@@ -153,7 +155,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
                         <button
                           className="btn-icon"
                           style={{ width: '28px', height: '28px', color: 'var(--priority-urgent)' }}
-                          onClick={() => deleteAssignee(assignee.id)}
+                          onClick={() => setMemberToDelete(assignee)}
                           title={`Delete ${assignee.name} from master`}
                         >
                           <Trash2 size={13} />
@@ -173,6 +175,70 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Delete Member Confirmation Modal */}
+      {memberToDelete && (
+        <div className="modal-overlay" onClick={() => setMemberToDelete(null)} style={{ zIndex: 1300 }}>
+          <div 
+            className="modal-dialog" 
+            style={{ maxWidth: '400px', animation: 'modalFadeIn 0.15s ease' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title" style={{ color: 'var(--priority-urgent)' }}>
+                <AlertTriangle size={18} color="var(--priority-urgent)" />
+                <span>Remove Team Member</span>
+              </div>
+              <button 
+                className="btn-icon" 
+                onClick={() => setMemberToDelete(null)} 
+                type="button"
+                title="Cancel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '16px 20px', gap: '8px' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: 1.5, margin: 0 }}>
+                Are you sure you want to remove <strong style={{ color: 'var(--text-main)' }}>"{memberToDelete.name}"</strong> from the master directory?
+              </p>
+              <p style={{ fontSize: '0.78125rem', color: 'var(--text-muted)', margin: 0 }}>
+                They will no longer appear in the assignee dropdown for future tasks.
+              </p>
+            </div>
+
+            <div className="modal-footer" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setMemberToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn" 
+                style={{ 
+                  background: 'var(--priority-urgent)', 
+                  color: '#ffffff', 
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onClick={() => {
+                  deleteAssignee(memberToDelete.id);
+                  setMemberToDelete(null);
+                }}
+              >
+                <Trash2 size={14} />
+                <span>Remove Member</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

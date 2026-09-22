@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Check, 
   Calendar, 
@@ -11,13 +11,15 @@ import {
   Trash2, 
   Edit3,
   HelpCircle,
-  Play
+  Play,
+  X
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
   const { toggleTaskComplete, deleteTask, toggleTaskInProgress } = useTasks();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isCompleted = task.status === 'completed';
   const isInProgress = task.status === 'in_progress';
@@ -114,7 +116,7 @@ export const TaskCard = ({ task, onEdit }) => {
             <button 
               className="btn-icon" 
               style={{ width: '28px', height: '28px', color: 'var(--priority-urgent)' }} 
-              onClick={() => deleteTask(task.id)}
+              onClick={() => setShowDeleteConfirm(true)}
               title="Delete Task"
             >
               <Trash2 size={13} />
@@ -214,6 +216,70 @@ export const TaskCard = ({ task, onEdit }) => {
           ))}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)} style={{ zIndex: 1200 }}>
+          <div 
+            className="modal-dialog" 
+            style={{ maxWidth: '420px', animation: 'modalFadeIn 0.15s ease' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title" style={{ color: 'var(--priority-urgent)' }}>
+                <AlertTriangle size={18} color="var(--priority-urgent)" />
+                <span>Confirm Delete</span>
+              </div>
+              <button 
+                className="btn-icon" 
+                onClick={() => setShowDeleteConfirm(false)} 
+                type="button"
+                title="Cancel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '16px 20px', gap: '8px' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: 1.5, margin: 0 }}>
+                Are you sure you want to delete <strong style={{ color: 'var(--text-main)' }}>"{task.title}"</strong>?
+              </p>
+              <p style={{ fontSize: '0.78125rem', color: 'var(--text-muted)', margin: 0 }}>
+                This action cannot be undone and will permanently remove this task.
+              </p>
+            </div>
+
+            <div className="modal-footer" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn" 
+                style={{ 
+                  background: 'var(--priority-urgent)', 
+                  color: '#ffffff', 
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onClick={() => {
+                  deleteTask(task.id);
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                <Trash2 size={14} />
+                <span>Delete Task</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
