@@ -14,6 +14,8 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
+  getDoc,
+  setDoc,
   onSnapshot, 
   query, 
   orderBy, 
@@ -187,6 +189,32 @@ export const deleteAssigneeFromFirestore = async (assigneeId) => {
   if (!db || !isConfigured) throw new Error('Firebase DB is not initialized');
   const assigneeRef = doc(db, 'assignees', assigneeId);
   return await deleteDoc(assigneeRef);
+};
+
+/* --- User Preferences (Account Theme Palette) API --- */
+
+export const saveUserPreferences = async (userId, prefs) => {
+  if (!db || !isConfigured || !userId) return;
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, { ...prefs, updatedAt: serverTimestamp() }, { merge: true });
+  } catch (err) {
+    console.warn('Could not sync user preferences to Firestore:', err);
+  }
+};
+
+export const getUserPreferences = async (userId) => {
+  if (!db || !isConfigured || !userId) return null;
+  try {
+    const userRef = doc(db, 'users', userId);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+  } catch (err) {
+    console.warn('Could not fetch user preferences from Firestore:', err);
+  }
+  return null;
 };
 
 /* --- Firebase Authentication Exports --- */

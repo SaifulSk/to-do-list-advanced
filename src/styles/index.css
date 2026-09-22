@@ -19,16 +19,17 @@
   --border-medium: rgba(255, 255, 255, 0.14);
   --border-focus: #10b981;
 
-  --text-main: #f0fdf4;
-  --text-secondary: #bbf7d0;
-  --text-muted: #86efac;
-  --text-dim: #4ade80;
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
-  /* Brand Green Accents (Single colors, no gradient) */
+  /* Brand Accents (Single solid colors, dynamically overridden per palette) */
   --primary: #10b981;
   --primary-hover: #059669;
-  --primary-light: rgba(16, 185, 129, 0.18);
+  --primary-light: rgba(16, 185, 129, 0.16);
   --primary-glow: rgba(16, 185, 129, 0.25);
+  --primary-border: rgba(16, 185, 129, 0.35);
 
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.15);
@@ -93,10 +94,10 @@
   --border-medium: rgba(0, 0, 0, 0.14);
   --border-focus: #059669;
 
-  --text-main: #052e16;
-  --text-secondary: #14532d;
-  --text-muted: #15803d;
-  --text-dim: #166534;
+  --text-main: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
@@ -185,7 +186,7 @@ html, body {
 .btn-primary:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 2px 6px var(--primary-glow);
 }
 .btn-primary:active {
   transform: translateY(0);
@@ -369,7 +370,7 @@ html, body {
 .badge-assignee {
   background: var(--assignee-accent-bg);
   color: var(--assignee-accent);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid var(--primary-border);
 }
 
 /* Date Badges */

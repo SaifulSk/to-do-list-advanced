@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider } from './context/TaskContext';
 import { Navbar } from './components/common/Navbar';
 import { StatsOverview } from './components/common/StatsOverview';
@@ -14,11 +15,9 @@ import { AuthPage } from './components/auth/AuthPage';
 
 function MainLayout() {
   const { currentUser, loading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [currentView, setCurrentView] = useState('list'); // 'list' | 'calendar'
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('zenith_theme') || 'dark';
-  });
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -26,16 +25,6 @@ function MainLayout() {
   const [editingTask, setEditingTask] = useState(null);
   const [defaultDate, setDefaultDate] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  // Sync theme with document
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('zenith_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   const handleOpenNewTask = (date = null) => {
     setEditingTask(null);
@@ -138,9 +127,11 @@ function MainLayout() {
 export default function App() {
   return (
     <AuthProvider>
-      <TaskProvider>
-        <MainLayout />
-      </TaskProvider>
+      <ThemeProvider>
+        <TaskProvider>
+          <MainLayout />
+        </TaskProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }
