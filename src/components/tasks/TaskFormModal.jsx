@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, Tag, CheckSquare } from 'lucide-react';
+import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
@@ -11,11 +11,9 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
   const [priority, setPriority] = useState('medium');
   const [status, setStatus] = useState('todo');
   const [dueDate, setDueDate] = useState('');
-  const [createdAt, setCreatedAt] = useState('');
   
-  // Assigned to fields
+  // Assigned to field (Name only)
   const [assignedName, setAssignedName] = useState('');
-  const [assignedEmail, setAssignedEmail] = useState('');
 
   // Need help from fields
   const [hasHelper, setHasHelper] = useState(false);
@@ -33,9 +31,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       setPriority(initialTask.priority || 'medium');
       setStatus(initialTask.status || 'todo');
       setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
-      setCreatedAt(initialTask.createdAt ? initialTask.createdAt.split('T')[0] : format(new Date(), 'yyyy-MM-dd'));
       setAssignedName(initialTask.assignedTo?.name || '');
-      setAssignedEmail(initialTask.assignedTo?.email || '');
 
       if (initialTask.needHelpFrom && initialTask.needHelpFrom.name) {
         setHasHelper(true);
@@ -49,14 +45,13 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
 
       setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
     } else {
-      // New task default state
+      // New task default state (Creation date is automatically today, due date is optional)
       setTitle('');
       setDescription('');
       setPriority('medium');
       setStatus('todo');
-      setDueDate(defaultDate || format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'));
+      setDueDate(defaultDate || '');
       setAssignedName('');
-      setAssignedEmail('');
       setHasHelper(false);
       setHelperName('');
       setHelperTopic('');
@@ -80,12 +75,11 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       description: description.trim(),
       priority,
       status,
-      dueDate: dueDate || null,
-      createdAt: createdAt || format(new Date(), 'yyyy-MM-dd'),
+      dueDate: dueDate ? dueDate : null, // Optional
+      createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'), // Current date
       assignedTo: assignedName.trim()
         ? {
             name: assignedName.trim(),
-            email: assignedEmail.trim() || undefined,
             avatar: assignedName.trim().slice(0, 2).toUpperCase()
           }
         : null,
@@ -130,7 +124,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
               <input
                 type="text"
                 className="input"
-                placeholder="e.g. Design responsive calendar component"
+                placeholder="e.g. Design user dashboard interface"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -181,34 +175,38 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
               </div>
             </div>
 
-            {/* Dates: Due Date and Created Date */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label className="form-label">
-                  <span>Due Date</span>
+            {/* Due Date (Optional) */}
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>
+                  <span>Due Date (Optional)</span>
                 </label>
-                <input
-                  type="date"
-                  className="input"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
+                {dueDate && (
+                  <button
+                    type="button"
+                    onClick={() => setDueDate('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Clear Date
+                  </button>
+                )}
               </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  <span>Creation Date</span>
-                </label>
-                <input
-                  type="date"
-                  className="input"
-                  value={createdAt}
-                  onChange={(e) => setCreatedAt(e.target.value)}
-                />
-              </div>
+              <input
+                type="date"
+                className="input"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
             </div>
 
-            {/* Section: Assigned To */}
+            {/* Section: Assigned To (Name only) */}
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <Users size={15} color="var(--assignee-accent)" />
@@ -216,22 +214,13 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
                   Assigned To
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Assignee Name (e.g. Sarah Chen)"
-                  value={assignedName}
-                  onChange={(e) => setAssignedName(e.target.value)}
-                />
-                <input
-                  type="email"
-                  className="input"
-                  placeholder="Assignee Email (optional)"
-                  value={assignedEmail}
-                  onChange={(e) => setAssignedEmail(e.target.value)}
-                />
-              </div>
+              <input
+                type="text"
+                className="input"
+                placeholder="Assignee Name (e.g. Sarah Chen)"
+                value={assignedName}
+                onChange={(e) => setAssignedName(e.target.value)}
+              />
             </div>
 
             {/* Section: Need Help From (Collaborator request) */}
@@ -258,7 +247,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
                   <input
                     type="text"
                     className="input"
-                    placeholder="Helper Name (e.g. Elena Rostova, Marcus Bell)"
+                    placeholder="Helper Name (e.g. Marcus Bell)"
                     value={helperName}
                     onChange={(e) => setHelperName(e.target.value)}
                     required={hasHelper}
@@ -266,7 +255,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
                   <input
                     type="text"
                     className="input"
-                    placeholder="Topic or Reason (e.g. Code Review, Architecture advice)"
+                    placeholder="Topic or Reason (e.g. Code Review, Testing)"
                     value={helperTopic}
                     onChange={(e) => setHelperTopic(e.target.value)}
                   />
@@ -283,7 +272,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
               <input
                 type="text"
                 className="input"
-                placeholder="Design, Frontend, Firebase, Urgent"
+                placeholder="Design, Frontend, Urgent"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
               />
