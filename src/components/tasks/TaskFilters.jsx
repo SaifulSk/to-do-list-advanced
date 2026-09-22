@@ -70,10 +70,16 @@ export const TaskFilters = () => {
           All
         </button>
         <button
-          className={`pill-btn ${filterStatus === 'active' ? 'active' : ''}`}
-          onClick={() => setFilterStatus('active')}
+          className={`pill-btn ${filterStatus === 'todo' ? 'active' : ''}`}
+          onClick={() => setFilterStatus('todo')}
         >
-          Active
+          To Do
+        </button>
+        <button
+          className={`pill-btn ${filterStatus === 'in_progress' ? 'active' : ''}`}
+          onClick={() => setFilterStatus('in_progress')}
+        >
+          <span>In Progress</span>
         </button>
         <button
           className={`pill-btn ${filterStatus === 'completed' ? 'active' : ''}`}

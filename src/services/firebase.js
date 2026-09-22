@@ -150,6 +150,45 @@ export const deleteTaskFromFirestore = async (taskId) => {
   return await deleteDoc(taskRef);
 };
 
+/* --- Real-Time Firestore Assignees Master API --- */
+
+export const subscribeToAssignees = (onData, onError) => {
+  if (!db || !isConfigured) return () => {};
+
+  try {
+    const q = query(collection(db, 'assignees'), orderBy('name', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+      const assignees = snapshot.docs.map((d) => ({
+        ...d.data(),
+        id: d.id,
+      }));
+      onData(assignees);
+    }, (error) => {
+      console.warn('Firestore assignees subscription notice:', error);
+      if (onError) onError(error);
+    });
+  } catch (err) {
+    console.warn('Failed to query assignees:', err);
+    if (onError) onError(err);
+    return () => {};
+  }
+};
+
+export const addAssigneeToFirestore = async (assigneeData) => {
+  if (!db || !isConfigured) throw new Error('Firebase DB is not initialized');
+  const { id, ...cleanData } = assigneeData;
+  return await addDoc(collection(db, 'assignees'), {
+    ...cleanData,
+    createdAt: new Date().toISOString()
+  });
+};
+
+export const deleteAssigneeFromFirestore = async (assigneeId) => {
+  if (!db || !isConfigured) throw new Error('Firebase DB is not initialized');
+  const assigneeRef = doc(db, 'assignees', assigneeId);
+  return await deleteDoc(assigneeRef);
+};
+
 /* --- Firebase Authentication Exports --- */
 
 export {

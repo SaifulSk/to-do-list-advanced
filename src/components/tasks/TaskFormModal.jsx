@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare } from 'lucide-react';
+import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
-export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => {
-  const { addTask, updateTask } = useTasks();
+export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpenAssigneeMaster }) => {
+  const { addTask, updateTask, assignees } = useTasks();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [status, setStatus] = useState('todo');
   const [dueDate, setDueDate] = useState('');
   
-  // Assigned to field (Name only)
+  // Assigned to field
   const [assignedName, setAssignedName] = useState('');
+  const [isCustomAssignee, setIsCustomAssignee] = useState(false);
 
   // Need help from fields
   const [hasHelper, setHasHelper] = useState(false);
@@ -29,9 +29,12 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       setTitle(initialTask.title || '');
       setDescription(initialTask.description || '');
       setPriority(initialTask.priority || 'medium');
-      setStatus(initialTask.status || 'todo');
       setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
-      setAssignedName(initialTask.assignedTo?.name || '');
+      const currentAssigned = initialTask.assignedTo?.name || '';
+      setAssignedName(currentAssigned);
+      // Check if current assignee is in master
+      const inMaster = assignees.some(a => a.name.toLowerCase() === currentAssigned.toLowerCase());
+      setIsCustomAssignee(Boolean(currentAssigned && !inMaster));
 
       if (initialTask.needHelpFrom && initialTask.needHelpFrom.name) {
         setHasHelper(true);
@@ -45,19 +48,19 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
 
       setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
     } else {
-      // New task default state (Creation date is automatically today, due date is optional)
+      // New task default state (Creation date is automatically today, due date is optional, status defaults to 'todo')
       setTitle('');
       setDescription('');
       setPriority('medium');
-      setStatus('todo');
       setDueDate(defaultDate || '');
       setAssignedName('');
+      setIsCustomAssignee(false);
       setHasHelper(false);
       setHelperName('');
       setHelperTopic('');
       setTagsInput('');
     }
-  }, [initialTask, defaultDate, isOpen]);
+  }, [initialTask, defaultDate, isOpen, assignees]);
 
   if (!isOpen) return null;
 
@@ -74,7 +77,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       title: title.trim(),
       description: description.trim(),
       priority,
-      status,
+      status: initialTask?.status || 'todo', // Status defaults to 'todo' on creation
       dueDate: dueDate ? dueDate : null, // Optional
       createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'), // Current date
       assignedTo: assignedName.trim()
@@ -100,6 +103,17 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       updateTask(initialTask.id, taskPayload);
     } else {
       addTask(taskPayload);
+    }
+  };
+
+  const handleAssigneeSelectChange = (e) => {
+    const val = e.target.value;
+    if (val === '__custom__') {
+      setIsCustomAssignee(true);
+      setAssignedName('');
+    } else {
+      setIsCustomAssignee(false);
+      setAssignedName(val);
     }
   };
 
@@ -147,7 +161,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
               />
             </div>
 
-            {/* Priority & Status */}
+            {/* Priority and Due Date side by side (Status removed from modal) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group">
                 <label className="form-label">Priority</label>
@@ -163,66 +177,96 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
                 </select>
               </div>
 
+              {/* Due Date in place of Status */}
               <div className="form-group">
-                <label className="form-label">Status</label>
-                <select
-                  className="select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    <span>Due Date (Optional)</span>
+                  </label>
+                  {dueDate && (
+                    <button
+                      type="button"
+                      onClick={() => setDueDate('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="date"
+                  className="input"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
               </div>
             </div>
 
-            {/* Due Date (Optional) */}
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>
-                  <span>Due Date (Optional)</span>
-                </label>
-                {dueDate && (
+            {/* Section: Assigned To with Master Selector */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={15} color="var(--assignee-accent)" />
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Assigned To
+                  </span>
+                </div>
+                {onOpenAssigneeMaster && (
                   <button
                     type="button"
-                    onClick={() => setDueDate('')}
+                    onClick={onOpenAssigneeMaster}
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--text-muted)',
+                      color: 'var(--primary)',
                       fontSize: '0.75rem',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      textDecoration: 'underline'
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}
                   >
-                    Clear Date
+                    <Settings size={12} />
+                    <span>Manage Master</span>
                   </button>
                 )}
               </div>
-              <input
-                type="date"
-                className="input"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
 
-            {/* Section: Assigned To (Name only) */}
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <Users size={15} color="var(--assignee-accent)" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Assigned To
-                </span>
+              {/* Dropdown with Assignee Master + Custom option */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <select
+                  className="select"
+                  value={isCustomAssignee ? '__custom__' : assignedName}
+                  onChange={handleAssigneeSelectChange}
+                >
+                  <option value="">-- Unassigned --</option>
+                  {assignees.map((a) => (
+                    <option key={a.id} value={a.name}>
+                      {a.name} {a.role ? `(${a.role})` : ''}
+                    </option>
+                  ))}
+                  <option value="__custom__">✏️ Enter custom name...</option>
+                </select>
+
+                {isCustomAssignee && (
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Enter assignee name..."
+                    value={assignedName}
+                    onChange={(e) => setAssignedName(e.target.value)}
+                    autoFocus
+                  />
+                )}
               </div>
-              <input
-                type="text"
-                className="input"
-                placeholder="Assignee Name (e.g. Sarah Chen)"
-                value={assignedName}
-                onChange={(e) => setAssignedName(e.target.value)}
-              />
             </div>
 
             {/* Section: Need Help From (Collaborator request) */}

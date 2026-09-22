@@ -10,15 +10,17 @@ import {
   MoreVertical, 
   Trash2, 
   Edit3,
-  HelpCircle
+  HelpCircle,
+  Play
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
-  const { toggleTaskComplete, deleteTask } = useTasks();
+  const { toggleTaskComplete, deleteTask, toggleTaskInProgress } = useTasks();
 
   const isCompleted = task.status === 'completed';
+  const isInProgress = task.status === 'in_progress';
 
   // Format Due Date helper
   const getDueDateDisplay = (dateString) => {
@@ -63,7 +65,7 @@ export const TaskCard = ({ task, onEdit }) => {
   };
 
   return (
-    <div className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''}`}>
+    <div className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''} ${isInProgress ? 'in-progress' : ''}`}>
       {/* Checkbox */}
       <div 
         className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
@@ -80,6 +82,27 @@ export const TaskCard = ({ task, onEdit }) => {
           
           {/* Actions */}
           <div className="task-actions">
+            {!isCompleted && (
+              <button 
+                type="button"
+                className={`status-toggle-btn ${isInProgress ? 'in-progress' : 'todo'}`}
+                onClick={() => toggleTaskInProgress(task.id)}
+                title={isInProgress ? "Task is in progress. Click to revert to To Do" : "Click to mark as In Progress"}
+              >
+                {isInProgress ? (
+                  <>
+                    <span className="status-dot-pulse" />
+                    <span>In Progress</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={11} fill="currentColor" />
+                    <span>In Progress</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <button 
               className="btn-icon" 
               style={{ width: '28px', height: '28px' }} 
@@ -104,8 +127,35 @@ export const TaskCard = ({ task, onEdit }) => {
           <p className="task-desc">{task.description}</p>
         )}
 
-        {/* Metadata Row: Priority, Due Date, Created Date, Assigned To, Need Help From */}
+        {/* Metadata Row: Status, Priority, Due Date, Created Date, Assigned To, Need Help From */}
         <div className="task-metadata">
+          {/* Status Badge */}
+          {isCompleted ? (
+            <span className="badge badge-completed">
+              <Check size={11} />
+              <span>Done</span>
+            </span>
+          ) : isInProgress ? (
+            <span 
+              className="badge badge-in-progress"
+              onClick={() => toggleTaskInProgress(task.id)}
+              style={{ cursor: 'pointer' }}
+              title="In Progress. Click to set back to To Do"
+            >
+              <span className="status-dot-pulse" />
+              <span>In Progress</span>
+            </span>
+          ) : (
+            <span 
+              className="badge badge-todo"
+              onClick={() => toggleTaskInProgress(task.id)}
+              style={{ cursor: 'pointer' }}
+              title="To Do. Click to set to In Progress"
+            >
+              <span>To Do</span>
+            </span>
+          )}
+
           {/* Priority Pill */}
           <span className={`badge badge-${task.priority}`}>
             {getPriorityIcon(task.priority)}

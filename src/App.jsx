@@ -7,6 +7,7 @@ import { TaskFilters } from './components/tasks/TaskFilters';
 import { TaskListView } from './components/tasks/TaskListView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
+import { AssigneeMasterModal } from './components/assignees/AssigneeMasterModal';
 import { AuthModal } from './components/auth/AuthModal';
 import { AuthPage } from './components/auth/AuthPage';
 
@@ -20,6 +21,7 @@ function MainLayout() {
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isAssigneeModalOpen, setIsAssigneeModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [defaultDate, setDefaultDate] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -44,6 +46,12 @@ function MainLayout() {
     setEditingTask(task);
     setDefaultDate(null);
     setIsTaskModalOpen(true);
+  };
+
+  const handleCloseTaskModal = () => {
+    setIsTaskModalOpen(false);
+    setEditingTask(null);
+    setDefaultDate(null);
   };
 
   // 1. Loading State
@@ -71,6 +79,7 @@ function MainLayout() {
         toggleTheme={toggleTheme}
         onOpenNewTask={() => handleOpenNewTask()}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAssigneeMaster={() => setIsAssigneeModalOpen(true)}
       />
 
       {/* Main Workspace Area */}
@@ -98,9 +107,15 @@ function MainLayout() {
       {/* Modals */}
       <TaskFormModal
         isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
+        onClose={handleCloseTaskModal}
         initialTask={editingTask}
         defaultDate={defaultDate}
+        onOpenAssigneeMaster={() => setIsAssigneeModalOpen(true)}
+      />
+
+      <AssigneeMasterModal
+        isOpen={isAssigneeModalOpen}
+        onClose={() => setIsAssigneeModalOpen(false)}
       />
 
       <AuthModal

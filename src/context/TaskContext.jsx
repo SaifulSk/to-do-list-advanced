@@ -7,7 +7,10 @@ import {
   subscribeToUserTasks,
   addTaskToFirestore,
   updateTaskInFirestore,
-  deleteTaskFromFirestore
+  deleteTaskFromFirestore,
+  subscribeToAssignees,
+  addAssigneeToFirestore,
+  deleteAssigneeFromFirestore
 } from '../services/firebase';
 
 const TaskContext = createContext(null);
@@ -21,11 +24,12 @@ export const useTasks = () => {
 };
 
 const LOCAL_TASKS_KEY = 'zenith_user_tasks';
+const LOCAL_ASSIGNEES_KEY = 'zenith_assignees_master';
 
 export const TaskProvider = ({ children }) => {
   const { currentUser, isFirebaseConnected } = useAuth();
 
-  // Tasks state initialized to empty array (no demo tasks)
+  // Tasks state
   const [tasks, setTasks] = useState(() => {
     try {
       const saved = localStorage.getItem(LOCAL_TASKS_KEY);
@@ -35,6 +39,20 @@ export const TaskProvider = ({ children }) => {
       }
     } catch (e) {
       console.warn('Error reading saved tasks:', e);
+    }
+    return [];
+  });
+
+  // Assignees Master state
+  const [assignees, setAssignees] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_ASSIGNEES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading saved assignees:', e);
     }
     return [];
   });
@@ -59,7 +77,15 @@ export const TaskProvider = ({ children }) => {
     }
   }, [tasks]);
 
-  // Real-time Firestore sync when user is authenticated
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_ASSIGNEES_KEY, JSON.stringify(assignees));
+    } catch (e) {
+      console.warn('Could not persist assignees to localStorage', e);
+    }
+  }, [assignees]);
+
+  // Real-time Firestore sync for Tasks
   useEffect(() => {
     if (!isFirebaseConnected || !currentUser) {
       return;
@@ -85,26 +111,94 @@ export const TaskProvider = ({ children }) => {
     };
   }, [isFirebaseConnected, currentUser]);
 
-  // Create Task (Optimistic UI)
+  // Real-time Firestore sync for Assignees Master
+  useEffect(() => {
+    if (!isFirebaseConnected) return;
+
+    const unsubscribe = subscribeToAssignees(
+      (firestoreAssignees) => {
+        if (Array.isArray(firestoreAssignees) && firestoreAssignees.length > 0) {
+          setAssignees(firestoreAssignees);
+        }
+      },
+      (error) => {
+        console.warn('Firestore assignees fallback to local:', error);
+      }
+    );
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [isFirebaseConnected]);
+
+  // Assignee Master: Add Assignee
+  const addAssignee = async (name, role = '') => {
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const initials = cleanName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0].toUpperCase())
+      .join('') || cleanName.slice(0, 2).toUpperCase();
+
+    const tempId = 'asn-' + Date.now();
+    const newAssignee = {
+      id: tempId,
+      name: cleanName,
+      role: role.trim() || '',
+      avatar: initials,
+      createdAt: new Date().toISOString()
+    };
+
+    // Update local state immediately
+    setAssignees(prev => [...prev.filter(a => a.name.toLowerCase() !== cleanName.toLowerCase()), newAssignee]);
+
+    // Persist to Firestore
+    if (isFirebaseConnected && currentUser) {
+      try {
+        const { id, ...dataToSave } = newAssignee;
+        const docRef = await addAssigneeToFirestore(dataToSave);
+        setAssignees(prev => prev.map(a => a.id === tempId ? { ...a, id: docRef.id } : a));
+      } catch (err) {
+        console.error('Firestore error saving assignee:', err);
+      }
+    }
+
+    return newAssignee;
+  };
+
+  // Assignee Master: Delete Assignee
+  const deleteAssignee = async (assigneeId) => {
+    setAssignees(prev => prev.filter(a => a.id !== assigneeId));
+    if (isFirebaseConnected && currentUser) {
+      try {
+        await deleteAssigneeFromFirestore(assigneeId);
+      } catch (err) {
+        console.error('Firestore error deleting assignee:', err);
+      }
+    }
+  };
+
+  // Create Task (Optimistic UI, default status: 'todo')
   const addTask = async (taskData) => {
     const tempId = 'task-' + Date.now();
     const newTask = {
       ...taskData,
       id: tempId,
       createdAt: taskData.createdAt || format(new Date(), 'yyyy-MM-dd'),
-      status: taskData.status || 'todo',
+      status: 'todo', // Creation status is always 'todo' by default
       userId: currentUser ? currentUser.uid : 'user-local'
     };
 
-    // 1. Instantly update local state
+    // Instantly update local state
     setTasks((prev) => [newTask, ...prev.filter(t => t.id !== tempId)]);
 
-    // 2. Persist to Firestore
+    // Persist to Firestore
     if (isFirebaseConnected && currentUser) {
       try {
         const { id, ...cleanData } = newTask;
         const docRef = await addTaskToFirestore(cleanData);
-        // Replace temp ID with Firestore document ID
         setTasks((prev) => prev.map(t => t.id === tempId ? { ...t, id: docRef.id } : t));
         newTask.id = docRef.id;
       } catch (err) {
@@ -117,10 +211,8 @@ export const TaskProvider = ({ children }) => {
 
   // Update Task (Optimistic UI)
   const updateTask = async (taskId, updates) => {
-    // 1. Instantly update local state
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
 
-    // 2. Persist to Firestore
     if (isFirebaseConnected && currentUser) {
       try {
         await updateTaskInFirestore(taskId, updates);
@@ -140,6 +232,16 @@ export const TaskProvider = ({ children }) => {
         console.error('Firestore delete error:', err);
       }
     }
+  };
+
+  // Toggle In-Progress status for a task
+  const toggleTaskInProgress = async (taskId) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Toggle between in_progress and todo
+    const newStatus = task.status === 'in_progress' ? 'todo' : 'in_progress';
+    await updateTask(taskId, { status: newStatus });
   };
 
   // Toggle Task Completion (with celebratory confetti)
@@ -189,6 +291,12 @@ export const TaskProvider = ({ children }) => {
         }
 
         // Status Filter
+        if (filterStatus === 'todo' && task.status !== 'todo') {
+          return false;
+        }
+        if (filterStatus === 'in_progress' && task.status !== 'in_progress') {
+          return false;
+        }
         if (filterStatus === 'active' && task.status === 'completed') {
           return false;
         }
@@ -229,19 +337,21 @@ export const TaskProvider = ({ children }) => {
       });
   }, [tasks, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder]);
 
-  // Distinct assignees list for filters dropdown
+  // Combined all assignees from tasks + Assignee Master
   const allAssignees = useMemo(() => {
     const set = new Set();
+    assignees.forEach(a => set.add(a.name));
     tasks.forEach((t) => {
       if (t.assignedTo?.name) set.add(t.assignedTo.name);
     });
     return Array.from(set);
-  }, [tasks]);
+  }, [tasks, assignees]);
 
   // Metrics for Stats Bar
   const stats = useMemo(() => {
     const total = tasks.length;
     const completed = tasks.filter((t) => t.status === 'completed').length;
+    const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
     const needHelp = tasks.filter((t) => t.needHelpFrom && t.needHelpFrom.name && t.status !== 'completed').length;
     
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -254,11 +364,12 @@ export const TaskProvider = ({ children }) => {
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    return { total, completed, needHelp, dueSoon, completionRate };
+    return { total, completed, inProgress, needHelp, dueSoon, completionRate };
   }, [tasks]);
 
   const value = {
     tasks,
+    assignees,
     filteredTasks,
     loading,
     stats,
@@ -280,7 +391,10 @@ export const TaskProvider = ({ children }) => {
     addTask,
     updateTask,
     deleteTask,
-    toggleTaskComplete
+    toggleTaskComplete,
+    toggleTaskInProgress,
+    addAssignee,
+    deleteAssignee
   };
 
   return (

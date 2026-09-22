@@ -7,7 +7,8 @@ import {
   Sun, 
   Moon, 
   User, 
-  LogOut 
+  LogOut,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -17,7 +18,8 @@ export const Navbar = ({
   theme, 
   toggleTheme, 
   onOpenNewTask, 
-  onOpenAuth 
+  onOpenAuth,
+  onOpenAssigneeMaster
 }) => {
   const { currentUser, logout } = useAuth();
 
@@ -63,6 +65,17 @@ export const Navbar = ({
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+
+          {/* Team / Assignee Master Directory Button */}
+          <button 
+            className="btn btn-secondary"
+            onClick={onOpenAssigneeMaster}
+            title="Open Assignee Master Directory"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Users size={15} />
+            <span>Team</span>
           </button>
 
           {/* New Task Button */}
