@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare, Settings } from 'lucide-react';
+import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare, Settings, Repeat, Banknote } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
@@ -11,6 +11,10 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
   const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
   
+  // Recurrence & Amount fields
+  const [recurrence, setRecurrence] = useState('none');
+  const [amount, setAmount] = useState('');
+
   // Assigned to field
   const [assignedName, setAssignedName] = useState('');
   const [isCustomAssignee, setIsCustomAssignee] = useState(false);
@@ -30,6 +34,8 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       setDescription(initialTask.description || '');
       setPriority(initialTask.priority || 'medium');
       setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
+      setRecurrence(initialTask.recurrence || 'none');
+      setAmount(initialTask.amount !== undefined && initialTask.amount !== null ? String(initialTask.amount) : '');
       const currentAssigned = initialTask.assignedTo?.name || '';
       setAssignedName(currentAssigned);
       // Check if current assignee is in master
@@ -53,6 +59,8 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       setDescription('');
       setPriority('medium');
       setDueDate(defaultDate || '');
+      setRecurrence('none');
+      setAmount('');
       setAssignedName('');
       setIsCustomAssignee(false);
       setHasHelper(false);
@@ -80,6 +88,9 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       status: initialTask?.status || 'todo', // Status defaults to 'todo' on creation
       dueDate: dueDate ? dueDate : null, // Optional
       createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'), // Current date
+      recurrence: recurrence !== 'none' ? recurrence : null,
+      amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
+      currency: amount !== '' ? '₹' : null,
       assignedTo: assignedName.trim()
         ? {
             name: assignedName.trim(),
@@ -179,7 +190,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
 
               {/* Due Date in place of Status */}
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="form-label-row">
                   <label className="form-label" style={{ marginBottom: 0 }}>
                     <span>Due Date (Optional)</span>
                   </label>
@@ -206,6 +217,48 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
+              </div>
+            </div>
+
+            {/* Recurrence & Amount side by side */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+              {/* Recurrence / Regular Task */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-start' }}>
+                  <Repeat size={14} color="var(--primary)" />
+                  <span>Repeat (Regular / Recurring)</span>
+                </label>
+                <select
+                  className="select"
+                  value={recurrence}
+                  onChange={(e) => setRecurrence(e.target.value)}
+                >
+                  <option value="none">Does not repeat</option>
+                  <option value="daily">🔁 Daily (Every day)</option>
+                  <option value="weekly">🔁 Weekly (Every week)</option>
+                  <option value="monthly">🔁 Monthly (Every month)</option>
+                  <option value="yearly">🔁 Yearly (Every year)</option>
+                </select>
+              </div>
+
+              {/* Amount / Budget (Optional) */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-start' }}>
+                  <Banknote size={14} color="var(--primary)" />
+                  <span>Amount / Cost (Optional)</span>
+                </label>
+                <div className="input-with-symbol">
+                  <span className="input-symbol">₹</span>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    className="input input-with-symbol-field"
+                    placeholder="e.g. 1500"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -311,10 +364,12 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
 
             {/* Tags */}
             <div className="form-group">
-              <label className="form-label">
-                <span>Tags</span>
+              <div className="form-label-row">
+                <label className="form-label">
+                  <span>Tags</span>
+                </label>
                 <span className="form-hint">Comma separated</span>
-              </label>
+              </div>
               <input
                 type="text"
                 className="input"

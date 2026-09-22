@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check } from 'lucide-react';
+import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, onAddTaskForDate, onEditTask }) => {
@@ -69,11 +69,25 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{task.title}</span>
-                        <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>{task.title}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          {task.recurrence && task.recurrence !== 'none' && (
+                            <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
+                              <Repeat size={10} />
+                              <span>{task.recurrence}</span>
+                            </span>
+                          )}
+                          {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
+                            <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
+                              <Banknote size={10} />
+                              <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
+                            </span>
+                          )}
+                          <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                         {task.assignedTo && (
                           <span>Assignee: <strong>{task.assignedTo.name}</strong></span>
                         )}
@@ -91,10 +105,10 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
           </div>
 
           {/* Created On This Day */}
-          <div style={{ marginTop: '12px' }}>
+          <div style={{ marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <div className="legend-dot created" />
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--marker-created)' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--marker-created)' }}>
                 Created on this day ({createdTasks.length})
               </h4>
             </div>
@@ -116,11 +130,25 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{task.title}</span>
-                        <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>{task.title}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          {task.recurrence && task.recurrence !== 'none' && (
+                            <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
+                              <Repeat size={10} />
+                              <span>{task.recurrence}</span>
+                            </span>
+                          )}
+                          {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
+                            <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
+                              <Banknote size={10} />
+                              <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
+                            </span>
+                          )}
+                          <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                         {task.dueDate && <span>Target Due: {task.dueDate}</span>}
                         {task.assignedTo && <span>Owner: {task.assignedTo.name}</span>}
                       </div>

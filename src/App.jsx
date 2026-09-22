@@ -5,6 +5,7 @@ import { Navbar } from './components/common/Navbar';
 import { StatsOverview } from './components/common/StatsOverview';
 import { TaskFilters } from './components/tasks/TaskFilters';
 import { TaskListView } from './components/tasks/TaskListView';
+import { TaskTableView } from './components/tasks/TaskTableView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { AssigneeMasterModal } from './components/assignees/AssigneeMasterModal';
@@ -87,11 +88,19 @@ function MainLayout() {
         {/* Dynamic Minimalist Stats Header */}
         <StatsOverview />
 
-        {/* View Switcher: List vs Calendar */}
+        {/* View Switcher: List vs Table vs Calendar */}
         {currentView === 'list' ? (
           <>
             <TaskFilters />
             <TaskListView 
+              onEditTask={handleEditTask} 
+              onOpenNewTask={() => handleOpenNewTask()} 
+            />
+          </>
+        ) : currentView === 'table' ? (
+          <>
+            <TaskFilters />
+            <TaskTableView 
               onEditTask={handleEditTask} 
               onOpenNewTask={() => handleOpenNewTask()} 
             />

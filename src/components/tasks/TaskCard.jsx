@@ -12,7 +12,9 @@ import {
   Trash2, 
   Edit3,
   HelpCircle,
-  X
+  X,
+  Repeat,
+  Banknote
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -169,6 +171,22 @@ export const TaskCard = ({ task, onEdit }) => {
             <span className="badge badge-date" title={`Created on ${task.createdAt}`} style={{ opacity: 0.8 }}>
               <Clock size={12} />
               <span>Created {createdDate}</span>
+            </span>
+          )}
+
+          {/* Recurrence Badge */}
+          {task.recurrence && task.recurrence !== 'none' && (
+            <span className="badge badge-recurrence" title={`Recurring: repeats ${task.recurrence}`}>
+              <Repeat size={11} />
+              <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+            </span>
+          )}
+
+          {/* Amount Badge */}
+          {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
+            <span className="badge badge-amount" title={`Amount: ${task.currency || '₹'}${Number(task.amount).toLocaleString()}`}>
+              <Banknote size={12} />
+              <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
             </span>
           )}
 

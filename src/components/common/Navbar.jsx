@@ -2,13 +2,14 @@ import React from 'react';
 import { 
   CheckSquare, 
   List, 
+  Table as TableIcon,
   Calendar as CalendarIcon, 
   Plus, 
   Sun, 
   Moon, 
   User, 
-  LogOut,
-  Users
+  LogOut, 
+  Users 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,33 +27,44 @@ export const Navbar = ({
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        {/* Brand / Logo */}
-        <div className="brand" onClick={() => setCurrentView('list')}>
-          <div className="brand-icon">
-            <CheckSquare size={18} />
+        {/* Top Row for Mobile (Logo on left, View Switcher on right) */}
+        <div className="navbar-top-row">
+          {/* Brand / Logo */}
+          <div className="brand" onClick={() => setCurrentView('list')}>
+            <div className="brand-icon">
+              <CheckSquare size={18} />
+            </div>
+            <span>Zenith<span style={{ color: 'var(--primary)', marginLeft: '2px' }}>.</span></span>
           </div>
-          <span>Zenith<span style={{ color: 'var(--primary)', marginLeft: '2px' }}>.</span></span>
-        </div>
 
-        {/* View Switcher: List vs Calendar */}
-        <div className="nav-center">
-          <div className="view-tabs">
-            <button 
-              className={`view-tab-btn ${currentView === 'list' ? 'active' : ''}`}
-              onClick={() => setCurrentView('list')}
-              title="List View"
-            >
-              <List size={15} />
-              <span>List</span>
-            </button>
-            <button 
-              className={`view-tab-btn ${currentView === 'calendar' ? 'active' : ''}`}
-              onClick={() => setCurrentView('calendar')}
-              title="Calendar View"
-            >
-              <CalendarIcon size={15} />
-              <span>Calendar</span>
-            </button>
+          {/* View Switcher: List vs Table vs Calendar */}
+          <div className="nav-center">
+            <div className="view-tabs">
+              <button 
+                className={`view-tab-btn ${currentView === 'list' ? 'active' : ''}`}
+                onClick={() => setCurrentView('list')}
+                title="List View"
+              >
+                <List size={15} />
+                <span>List</span>
+              </button>
+              <button 
+                className={`view-tab-btn ${currentView === 'table' ? 'active' : ''}`}
+                onClick={() => setCurrentView('table')}
+                title="Table View"
+              >
+                <TableIcon size={15} />
+                <span>Table</span>
+              </button>
+              <button 
+                className={`view-tab-btn ${currentView === 'calendar' ? 'active' : ''}`}
+                onClick={() => setCurrentView('calendar')}
+                title="Calendar View"
+              >
+                <CalendarIcon size={15} />
+                <span>Calendar</span>
+              </button>
+            </div>
           </div>
         </div>
 

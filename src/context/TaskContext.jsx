@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { format } from 'date-fns';
+import { format, addDays, addWeeks, addMonths, addYears, parseISO, isValid } from 'date-fns';
 import { useAuth } from './AuthContext';
 import { 
   isConfigured as isFirebaseLive, 
@@ -262,6 +262,50 @@ export const TaskProvider = ({ children }) => {
         });
       } catch (e) {
         // ignore
+      }
+
+      // If the task has a recurrence, automatically schedule/create the next occurrence!
+      if (task.recurrence && task.recurrence !== 'none') {
+        const baseDate = task.dueDate ? parseISO(task.dueDate) : new Date();
+        const validBase = isValid(baseDate) ? baseDate : new Date();
+        let nextDueDate;
+
+        switch (task.recurrence) {
+          case 'daily':
+            nextDueDate = addDays(validBase, 1);
+            break;
+          case 'weekly':
+            nextDueDate = addWeeks(validBase, 1);
+            break;
+          case 'monthly':
+            nextDueDate = addMonths(validBase, 1);
+            break;
+          case 'yearly':
+            nextDueDate = addYears(validBase, 1);
+            break;
+          default:
+            nextDueDate = null;
+        }
+
+        const nextDateStr = nextDueDate ? format(nextDueDate, 'yyyy-MM-dd') : null;
+
+        // Auto-spawn the next occurrence with the new due date and status 'todo'
+        setTimeout(() => {
+          addTask({
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority || 'medium',
+            status: 'todo',
+            dueDate: nextDateStr,
+            createdAt: format(new Date(), 'yyyy-MM-dd'),
+            assignedTo: task.assignedTo || null,
+            needHelpFrom: task.needHelpFrom || null,
+            tags: task.tags || [],
+            recurrence: task.recurrence,
+            amount: task.amount !== undefined ? task.amount : null,
+            currency: task.currency || '₹'
+          });
+        }, 150);
       }
     }
 
