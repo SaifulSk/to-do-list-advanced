@@ -61,7 +61,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
@@ -86,19 +86,21 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
       needHelpFrom: hasHelper && helperName.trim()
         ? {
             name: helperName.trim(),
-            topic: helperTopic.trim() || undefined
+            topic: helperTopic.trim() || '' // Never pass undefined to Firestore
           }
         : null,
       tags
     };
 
-    if (initialTask) {
-      await updateTask(initialTask.id, taskPayload);
-    } else {
-      await addTask(taskPayload);
-    }
-
+    // 1. Immediately close the modal so UI is snappy and never gets stuck
     onClose();
+
+    // 2. Perform optimistic update / add
+    if (initialTask && initialTask.id) {
+      updateTask(initialTask.id, taskPayload);
+    } else {
+      addTask(taskPayload);
+    }
   };
 
   return (
@@ -109,7 +111,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate }) => 
             <CheckSquare size={18} color="var(--primary)" />
             <span>{initialTask ? 'Edit Task' : 'Create New Task'}</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon" onClick={onClose} type="button">
             <X size={16} />
           </button>
         </div>

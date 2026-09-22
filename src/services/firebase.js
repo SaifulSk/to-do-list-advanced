@@ -16,7 +16,6 @@ import {
   deleteDoc, 
   onSnapshot, 
   query, 
-  where, 
   orderBy, 
   serverTimestamp 
 } from 'firebase/firestore';
@@ -105,11 +104,14 @@ export const subscribeToUserTasks = (userId, onData, onError) => {
     );
 
     return onSnapshot(q, (snapshot) => {
-      const tasks = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toISOString() : d.data().createdAt,
-      }));
+      const tasks = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id, // Always ensure the Firestore document ID takes precedence
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+        };
+      });
       onData(tasks);
     }, (error) => {
       console.warn('Firestore subscription error (e.g. security rules or index setup):', error);
@@ -124,18 +126,20 @@ export const subscribeToUserTasks = (userId, onData, onError) => {
 
 export const addTaskToFirestore = async (taskData) => {
   if (!db || !isConfigured) throw new Error('Firebase DB is not initialized');
+  const { id, ...cleanData } = taskData;
   return await addDoc(collection(db, 'todos'), {
-    ...taskData,
-    createdAt: taskData.createdAt || new Date().toISOString().split('T')[0],
+    ...cleanData,
+    createdAt: cleanData.createdAt || new Date().toISOString().split('T')[0],
     serverTimestamp: serverTimestamp()
   });
 };
 
 export const updateTaskInFirestore = async (taskId, updates) => {
   if (!db || !isConfigured) throw new Error('Firebase DB is not initialized');
+  const { id, ...cleanUpdates } = updates;
   const taskRef = doc(db, 'todos', taskId);
   return await updateDoc(taskRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: new Date().toISOString()
   });
 };

@@ -69,7 +69,9 @@ export const TaskProvider = ({ children }) => {
     const unsubscribe = subscribeToUserTasks(
       currentUser.uid,
       (firestoreTasks) => {
-        setTasks(firestoreTasks);
+        if (Array.isArray(firestoreTasks) && firestoreTasks.length > 0) {
+          setTasks(firestoreTasks);
+        }
         setLoading(false);
       },
       (error) => {
@@ -83,51 +85,61 @@ export const TaskProvider = ({ children }) => {
     };
   }, [isFirebaseConnected, currentUser]);
 
-  // Create Task
+  // Create Task (Optimistic UI)
   const addTask = async (taskData) => {
+    const tempId = 'task-' + Date.now();
     const newTask = {
       ...taskData,
-      id: 'task-' + Date.now(),
+      id: tempId,
       createdAt: taskData.createdAt || format(new Date(), 'yyyy-MM-dd'),
       status: taskData.status || 'todo',
       userId: currentUser ? currentUser.uid : 'user-local'
     };
 
+    // 1. Instantly update local state
+    setTasks((prev) => [newTask, ...prev.filter(t => t.id !== tempId)]);
+
+    // 2. Persist to Firestore
     if (isFirebaseConnected && currentUser) {
       try {
-        const docRef = await addTaskToFirestore(newTask);
+        const { id, ...cleanData } = newTask;
+        const docRef = await addTaskToFirestore(cleanData);
+        // Replace temp ID with Firestore document ID
+        setTasks((prev) => prev.map(t => t.id === tempId ? { ...t, id: docRef.id } : t));
         newTask.id = docRef.id;
       } catch (err) {
-        console.error('Firestore write error, saving locally:', err);
+        console.error('Firestore write error, keeping local task:', err);
       }
     }
 
-    setTasks((prev) => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
     return newTask;
   };
 
-  // Update Task
+  // Update Task (Optimistic UI)
   const updateTask = async (taskId, updates) => {
+    // 1. Instantly update local state
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+
+    // 2. Persist to Firestore
     if (isFirebaseConnected && currentUser) {
       try {
         await updateTaskInFirestore(taskId, updates);
       } catch (err) {
-        console.error('Firestore update error, updating locally:', err);
+        console.error('Firestore update error, keeping local changes:', err);
       }
     }
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
   };
 
-  // Delete Task
+  // Delete Task (Optimistic UI)
   const deleteTask = async (taskId) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
     if (isFirebaseConnected && currentUser) {
       try {
         await deleteTaskFromFirestore(taskId);
       } catch (err) {
-        console.error('Firestore delete error, deleting locally:', err);
+        console.error('Firestore delete error:', err);
       }
     }
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
   // Toggle Task Completion (with celebratory confetti)
