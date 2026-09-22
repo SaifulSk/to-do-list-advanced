@@ -1,9 +1,9 @@
 import React from 'react';
-import { CheckCircle2, Clock, Users, Flame, Play } from 'lucide-react';
+import { CheckCircle2, Clock, Play } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 
 export const StatsOverview = () => {
-  const { stats, filterNeedHelp, setFilterNeedHelp, filterStatus, setFilterStatus } = useTasks();
+  const { stats, filterStatus, setFilterStatus } = useTasks();
 
   return (
     <div className="stats-grid">
@@ -11,7 +11,7 @@ export const StatsOverview = () => {
       <div 
         className="stat-card" 
         style={{ cursor: 'pointer' }}
-        onClick={() => { setFilterStatus('all'); setFilterNeedHelp(false); }}
+        onClick={() => setFilterStatus('all')}
         title="View All Tasks"
       >
         <div className="stat-info">
@@ -67,28 +67,6 @@ export const StatsOverview = () => {
         </div>
         <div className="stat-icon-wrap" style={{ background: 'var(--priority-high-bg)', color: 'var(--priority-high)' }}>
           <Clock size={22} />
-        </div>
-      </div>
-
-      {/* Need Help From Collaborators */}
-      <div 
-        className="stat-card" 
-        style={{ 
-          cursor: 'pointer',
-          borderColor: filterNeedHelp ? 'var(--help-accent)' : 'var(--border-subtle)',
-          boxShadow: filterNeedHelp ? '0 0 12px rgba(168, 85, 247, 0.2)' : 'none'
-        }}
-        onClick={() => setFilterNeedHelp(!filterNeedHelp)}
-        title={filterNeedHelp ? "Clear Need Help Filter" : "Filter Tasks Needing Help"}
-      >
-        <div className="stat-info">
-          <span className="stat-label">
-            Need Help {filterNeedHelp ? '● Active' : ''}
-          </span>
-          <span className="stat-val" style={{ color: 'var(--help-accent)' }}>{stats.needHelp}</span>
-        </div>
-        <div className="stat-icon-wrap" style={{ background: 'var(--help-accent-bg)', color: 'var(--help-accent)' }}>
-          <Users size={22} />
         </div>
       </div>
     </div>

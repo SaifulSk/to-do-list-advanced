@@ -91,7 +91,7 @@
 /* --- STATS OVERVIEW --- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -734,11 +734,26 @@
 @media (max-width: 900px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 }
 @media (max-width: 600px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 12px 14px;
+  }
+  .stat-val {
+    font-size: 1.25rem;
+  }
+  .stat-label {
+    font-size: 0.6875rem;
+  }
+  .stat-icon-wrap {
+    width: 34px;
+    height: 34px;
   }
   .navbar-inner {
     flex-direction: column;
