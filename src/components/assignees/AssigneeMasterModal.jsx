@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Users, Plus, Trash2, ShieldCheck, Briefcase, AlertTriangle } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 
@@ -176,9 +177,9 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* Delete Member Confirmation Modal */}
-      {memberToDelete && (
-        <div className="modal-overlay" onClick={() => setMemberToDelete(null)} style={{ zIndex: 1300 }}>
+      {/* Delete Member Confirmation Modal rendered via Portal to document.body */}
+      {memberToDelete && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay" onClick={() => setMemberToDelete(null)} style={{ zIndex: 10000 }}>
           <div 
             className="modal-dialog" 
             style={{ maxWidth: '400px', animation: 'modalFadeIn 0.15s ease' }} 
@@ -237,7 +238,8 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

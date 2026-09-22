@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Check, 
   Calendar, 
@@ -217,9 +218,9 @@ export const TaskCard = ({ task, onEdit }) => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)} style={{ zIndex: 1200 }}>
+      {/* Delete Confirmation Modal rendered to body via Portal */}
+      {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)} style={{ zIndex: 9999 }}>
           <div 
             className="modal-dialog" 
             style={{ maxWidth: '420px', animation: 'modalFadeIn 0.15s ease' }} 
@@ -278,7 +279,8 @@ export const TaskCard = ({ task, onEdit }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
