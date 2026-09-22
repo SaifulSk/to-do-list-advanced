@@ -12,7 +12,6 @@ import {
   Trash2, 
   Edit3,
   HelpCircle,
-  Play,
   X
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
@@ -85,27 +84,6 @@ export const TaskCard = ({ task, onEdit }) => {
           
           {/* Actions */}
           <div className="task-actions">
-            {!isCompleted && (
-              <button 
-                type="button"
-                className={`status-toggle-btn ${isInProgress ? 'in-progress' : 'todo'}`}
-                onClick={() => toggleTaskInProgress(task.id)}
-                title={isInProgress ? "Task is in progress. Click to revert to To Do" : "Click to mark as In Progress"}
-              >
-                {isInProgress ? (
-                  <>
-                    <span className="status-dot-pulse" />
-                    <span>In Progress</span>
-                  </>
-                ) : (
-                  <>
-                    <Play size={11} fill="currentColor" />
-                    <span>In Progress</span>
-                  </>
-                )}
-              </button>
-            )}
-
             <button 
               className="btn-icon" 
               style={{ width: '28px', height: '28px' }} 

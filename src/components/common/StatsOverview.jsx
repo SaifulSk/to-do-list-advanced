@@ -59,10 +59,10 @@ export const StatsOverview = () => {
         </div>
       </div>
 
-      {/* Due Soon / Overdue */}
+      {/* Due */}
       <div className="stat-card">
         <div className="stat-info">
-          <span className="stat-label">Due Soon / Overdue</span>
+          <span className="stat-label">Due</span>
           <span className="stat-val" style={{ color: 'var(--priority-high)' }}>{stats.dueSoon}</span>
         </div>
         <div className="stat-icon-wrap" style={{ background: 'var(--priority-high-bg)', color: 'var(--priority-high)' }}>
