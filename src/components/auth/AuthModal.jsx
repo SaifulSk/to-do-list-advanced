@@ -1,11 +1,31 @@
 import React, { useState } from 'react';
-import { X, User, LogOut, Palette, Check, Pipette, CheckCircle2 } from 'lucide-react';
+import { 
+  X, 
+  User, 
+  LogOut, 
+  Palette, 
+  Check, 
+  Pipette, 
+  CheckCircle2, 
+  List, 
+  Table as TableIcon, 
+  Calendar as CalendarIcon, 
+  LayoutGrid, 
+  Star 
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-export const AuthModal = ({ isOpen, onClose }) => {
+export const AuthModal = ({ isOpen, onClose, currentView, onSelectView }) => {
   const { currentUser, logout } = useAuth();
-  const { currentPalette, setAccountPalette, availablePalettes, isSavingPalette } = useTheme();
+  const { 
+    currentPalette, 
+    setAccountPalette, 
+    availablePalettes, 
+    isSavingPalette,
+    defaultView,
+    setDefaultView
+  } = useTheme();
 
   // Custom color state if user enters custom hex
   const isPreset = availablePalettes.some((p) => p.id === currentPalette);
@@ -17,6 +37,11 @@ export const AuthModal = ({ isOpen, onClose }) => {
     const newColor = e.target.value;
     setCustomHex(newColor);
     setAccountPalette(newColor);
+  };
+
+  const handleSetDefaultView = (view) => {
+    setDefaultView(view);
+    onSelectView?.(view);
   };
 
   return (
@@ -67,6 +92,84 @@ export const AuthModal = ({ isOpen, onClose }) => {
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {currentUser.email}
               </p>
+            </div>
+          </div>
+
+          <hr className="account-divider" />
+
+          {/* Default Workspace View Section */}
+          <div className="account-palette-section">
+            <div className="account-palette-header">
+              <div className="account-palette-title">
+                <LayoutGrid size={15} color="var(--primary)" />
+                <span>Default Workspace View</span>
+              </div>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', fontWeight: 500 }}>
+                {defaultView.charAt(0).toUpperCase() + defaultView.slice(1)} View
+              </span>
+            </div>
+
+            <p className="account-palette-desc">
+              Choose which tab opens automatically when you start or refresh your workspace.
+            </p>
+
+            <div className="default-view-selector">
+              <button
+                type="button"
+                className={`default-view-btn ${defaultView === 'list' ? 'active' : ''}`}
+                onClick={() => handleSetDefaultView('list')}
+                title="Set List as default view"
+              >
+                <div className="default-view-btn-inner">
+                  <List size={16} />
+                  <span>List</span>
+                </div>
+                {defaultView === 'list' ? (
+                  <span className="default-view-badge">
+                    <Star size={10} fill="currentColor" /> Default
+                  </span>
+                ) : (
+                  <span className="default-view-sub">Set Default</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className={`default-view-btn ${defaultView === 'table' ? 'active' : ''}`}
+                onClick={() => handleSetDefaultView('table')}
+                title="Set Table as default view"
+              >
+                <div className="default-view-btn-inner">
+                  <TableIcon size={16} />
+                  <span>Table</span>
+                </div>
+                {defaultView === 'table' ? (
+                  <span className="default-view-badge">
+                    <Star size={10} fill="currentColor" /> Default
+                  </span>
+                ) : (
+                  <span className="default-view-sub">Set Default</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className={`default-view-btn ${defaultView === 'calendar' ? 'active' : ''}`}
+                onClick={() => handleSetDefaultView('calendar')}
+                title="Set Calendar as default view"
+              >
+                <div className="default-view-btn-inner">
+                  <CalendarIcon size={16} />
+                  <span>Calendar</span>
+                </div>
+                {defaultView === 'calendar' ? (
+                  <span className="default-view-badge">
+                    <Star size={10} fill="currentColor" /> Default
+                  </span>
+                ) : (
+                  <span className="default-view-sub">Set Default</span>
+                )}
+              </button>
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider } from './context/TaskContext';
@@ -15,9 +15,21 @@ import { AuthPage } from './components/auth/AuthPage';
 
 function MainLayout() {
   const { currentUser, loading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, defaultView } = useTheme();
 
-  const [currentView, setCurrentView] = useState('list'); // 'list' | 'calendar'
+  const [currentView, setCurrentView] = useState(() => {
+    const userKey = currentUser?.uid ? `zenith_default_view_${currentUser.uid}` : 'zenith_default_view';
+    return localStorage.getItem(userKey) || localStorage.getItem('zenith_default_view') || 'list';
+  });
+
+  const [hasManuallyChangedView, setHasManuallyChangedView] = useState(false);
+
+  // When defaultView loads from storage or remote sync, apply if view wasn't manually altered
+  useEffect(() => {
+    if (!hasManuallyChangedView && defaultView) {
+      setCurrentView(defaultView);
+    }
+  }, [defaultView, hasManuallyChangedView]);
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -64,7 +76,11 @@ function MainLayout() {
       {/* Top Navigation */}
       <Navbar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={(view) => {
+          setHasManuallyChangedView(true);
+          setCurrentView(view);
+        }}
+        defaultView={defaultView}
         theme={theme}
         toggleTheme={toggleTheme}
         onOpenNewTask={() => handleOpenNewTask()}
@@ -119,6 +135,11 @@ function MainLayout() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        currentView={currentView}
+        onSelectView={(view) => {
+          setHasManuallyChangedView(true);
+          setCurrentView(view);
+        }}
       />
     </div>
   );

@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 export const Navbar = ({ 
   currentView, 
   setCurrentView, 
+  defaultView = 'list',
   theme, 
   toggleTheme, 
   onOpenNewTask, 
@@ -30,7 +31,7 @@ export const Navbar = ({
         {/* Top Row for Mobile (Logo on left, View Switcher on right) */}
         <div className="navbar-top-row">
           {/* Brand / Logo */}
-          <div className="brand" onClick={() => setCurrentView('list')}>
+          <div className="brand" onClick={() => setCurrentView(defaultView || 'list')}>
             <div className="brand-icon">
               <CheckSquare size={18} />
             </div>
@@ -43,26 +44,29 @@ export const Navbar = ({
               <button 
                 className={`view-tab-btn ${currentView === 'list' ? 'active' : ''}`}
                 onClick={() => setCurrentView('list')}
-                title="List View"
+                title={defaultView === 'list' ? "List View (Default)" : "List View"}
               >
                 <List size={15} />
                 <span>List</span>
+                {defaultView === 'list' && <span className="tab-default-dot" title="Default View" />}
               </button>
               <button 
                 className={`view-tab-btn ${currentView === 'table' ? 'active' : ''}`}
                 onClick={() => setCurrentView('table')}
-                title="Table View"
+                title={defaultView === 'table' ? "Table View (Default)" : "Table View"}
               >
                 <TableIcon size={15} />
                 <span>Table</span>
+                {defaultView === 'table' && <span className="tab-default-dot" title="Default View" />}
               </button>
               <button 
                 className={`view-tab-btn ${currentView === 'calendar' ? 'active' : ''}`}
                 onClick={() => setCurrentView('calendar')}
-                title="Calendar View"
+                title={defaultView === 'calendar' ? "Calendar View (Default)" : "Calendar View"}
               >
                 <CalendarIcon size={15} />
                 <span>Calendar</span>
+                {defaultView === 'calendar' && <span className="tab-default-dot" title="Default View" />}
               </button>
             </div>
           </div>
