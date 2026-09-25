@@ -183,11 +183,13 @@ export const TaskProvider = ({ children }) => {
   // Create Task (Optimistic UI, default status: 'todo')
   const addTask = async (taskData) => {
     const tempId = 'task-' + Date.now();
+    const isCompleted = taskData.status === 'completed';
     const newTask = {
       ...taskData,
       id: tempId,
       createdAt: taskData.createdAt || format(new Date(), 'yyyy-MM-dd'),
-      status: 'todo', // Creation status is always 'todo' by default
+      status: taskData.status || 'todo',
+      completedAt: isCompleted ? (taskData.completedAt || format(new Date(), 'yyyy-MM-dd HH:mm')) : null,
       userId: currentUser ? currentUser.uid : 'user-local'
     };
 
@@ -211,11 +213,18 @@ export const TaskProvider = ({ children }) => {
 
   // Update Task (Optimistic UI)
   const updateTask = async (taskId, updates) => {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+    const finalUpdates = { ...updates };
+    if (finalUpdates.status === 'completed' && finalUpdates.completedAt === undefined) {
+      finalUpdates.completedAt = format(new Date(), 'yyyy-MM-dd HH:mm');
+    } else if (finalUpdates.status && finalUpdates.status !== 'completed' && finalUpdates.completedAt === undefined) {
+      finalUpdates.completedAt = null;
+    }
+
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t)));
 
     if (isFirebaseConnected) {
       try {
-        await updateTaskInFirestore(taskId, updates);
+        await updateTaskInFirestore(taskId, finalUpdates);
       } catch (err) {
         console.error('Firestore update error, keeping local changes:', err);
       }
@@ -241,7 +250,7 @@ export const TaskProvider = ({ children }) => {
 
     // Toggle between in_progress and todo
     const newStatus = task.status === 'in_progress' ? 'todo' : 'in_progress';
-    await updateTask(taskId, { status: newStatus });
+    await updateTask(taskId, { status: newStatus, completedAt: null });
   };
 
   // Toggle Task Completion (with celebratory confetti)
@@ -309,7 +318,8 @@ export const TaskProvider = ({ children }) => {
       }
     }
 
-    await updateTask(taskId, { status: newStatus });
+    const completedAt = isNowCompleted ? format(new Date(), 'yyyy-MM-dd HH:mm') : null;
+    await updateTask(taskId, { status: newStatus, completedAt });
   };
 
   // Filtered and Sorted Tasks

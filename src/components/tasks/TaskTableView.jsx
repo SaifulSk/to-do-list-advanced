@@ -13,7 +13,8 @@ import {
   Trash2, 
   AlertCircle, 
   Plus, 
-  X 
+  X,
+  CheckCircle2 
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -205,15 +206,28 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                   </span>
                 </td>
 
-                {/* Due Date */}
+                {/* Due Date & Completion Date */}
                 <td>
-                  {dueInfo ? (
-                    <span className={`badge badge-date ${dueInfo.class}`}>
-                      {dueInfo.text}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                    {dueInfo ? (
+                      <span className={`badge badge-date ${dueInfo.class}`}>
+                        {dueInfo.text}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                    )}
+
+                    {task.completedAt && (
+                      <span 
+                        className="badge badge-completed" 
+                        title={`Completed on ${task.completedAt}`}
+                        style={{ fontSize: '0.6875rem', padding: '2px 6px' }}
+                      >
+                        <CheckCircle2 size={10} />
+                        <span>Done {format(parseISO(task.completedAt), 'MMM d')}</span>
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Recurrence */}

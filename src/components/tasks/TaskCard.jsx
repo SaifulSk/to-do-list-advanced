@@ -14,7 +14,8 @@ import {
   HelpCircle,
   X,
   Repeat,
-  Banknote
+  Banknote,
+  CheckCircle2
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -64,8 +65,21 @@ export const TaskCard = ({ task, onEdit }) => {
     }
   };
 
+  // Format Completed Date helper
+  const getCompletedDateDisplay = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const parsed = parseISO(dateString);
+      if (isNaN(parsed.getTime())) return dateString;
+      return format(parsed, 'MMM d');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   const dueInfo = getDueDateDisplay(task.dueDate);
   const createdDate = getCreatedDateDisplay(task.createdAt);
+  const completedDate = getCompletedDateDisplay(task.completedAt);
 
   const getPriorityIcon = (priority) => {
     switch (priority) {
@@ -163,6 +177,14 @@ export const TaskCard = ({ task, onEdit }) => {
             <span className={`badge badge-date ${dueInfo.class}`}>
               <Calendar size={12} />
               <span>{dueInfo.text}</span>
+            </span>
+          )}
+
+          {/* Completed Date Badge */}
+          {completedDate && (
+            <span className="badge badge-completed" title={`Completed on ${task.completedAt}`}>
+              <CheckCircle2 size={12} />
+              <span>Done {completedDate}</span>
             </span>
           )}
 

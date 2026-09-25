@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare, Settings, Repeat, Banknote } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Calendar, Flame, AlertTriangle, Clock, ArrowDown, Users, CheckSquare, Settings, Repeat, Banknote, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
@@ -27,48 +27,59 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
   // Tags
   const [tagsInput, setTagsInput] = useState('');
 
-  // Reset or populate fields on open
-  useEffect(() => {
-    if (initialTask) {
-      setTitle(initialTask.title || '');
-      setDescription(initialTask.description || '');
-      setPriority(initialTask.priority || 'medium');
-      setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
-      setRecurrence(initialTask.recurrence || 'none');
-      setAmount(initialTask.amount !== undefined && initialTask.amount !== null ? String(initialTask.amount) : '');
-      const currentAssigned = initialTask.assignedTo?.name || '';
-      setAssignedName(currentAssigned);
-      // Check if current assignee is in master
-      const inMaster = assignees.some(a => a.name.toLowerCase() === currentAssigned.toLowerCase());
-      setIsCustomAssignee(Boolean(currentAssigned && !inMaster));
+  // Track previous open state and task id to prevent wiping form data when assignees update
+  const prevIsOpenRef = React.useRef(false);
+  const prevTaskIdRef = React.useRef(null);
 
-      if (initialTask.needHelpFrom && initialTask.needHelpFrom.name) {
-        setHasHelper(true);
-        setHelperName(initialTask.needHelpFrom.name || '');
-        setHelperTopic(initialTask.needHelpFrom.topic || '');
+  // Reset or populate fields only when modal is newly opened or task changes
+  useEffect(() => {
+    const isOpening = isOpen && !prevIsOpenRef.current;
+    const isTaskChanged = initialTask?.id !== prevTaskIdRef.current;
+
+    if (isOpening || isTaskChanged) {
+      if (initialTask) {
+        setTitle(initialTask.title || '');
+        setDescription(initialTask.description || '');
+        setPriority(initialTask.priority || 'medium');
+        setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
+        setRecurrence(initialTask.recurrence || 'none');
+        setAmount(initialTask.amount !== undefined && initialTask.amount !== null ? String(initialTask.amount) : '');
+        const currentAssigned = initialTask.assignedTo?.name || '';
+        setAssignedName(currentAssigned);
+        const inMaster = assignees.some(a => a.name.toLowerCase() === currentAssigned.toLowerCase());
+        setIsCustomAssignee(Boolean(currentAssigned && !inMaster));
+
+        if (initialTask.needHelpFrom && initialTask.needHelpFrom.name) {
+          setHasHelper(true);
+          setHelperName(initialTask.needHelpFrom.name || '');
+          setHelperTopic(initialTask.needHelpFrom.topic || '');
+        } else {
+          setHasHelper(false);
+          setHelperName('');
+          setHelperTopic('');
+        }
+
+        setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
       } else {
+        // New task default state
+        setTitle('');
+        setDescription('');
+        setPriority('medium');
+        setDueDate(defaultDate || '');
+        setRecurrence('none');
+        setAmount('');
+        setAssignedName('');
+        setIsCustomAssignee(false);
         setHasHelper(false);
         setHelperName('');
         setHelperTopic('');
+        setTagsInput('');
       }
-
-      setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
-    } else {
-      // New task default state (Creation date is automatically today, due date is optional, status defaults to 'todo')
-      setTitle('');
-      setDescription('');
-      setPriority('medium');
-      setDueDate(defaultDate || '');
-      setRecurrence('none');
-      setAmount('');
-      setAssignedName('');
-      setIsCustomAssignee(false);
-      setHasHelper(false);
-      setHelperName('');
-      setHelperTopic('');
-      setTagsInput('');
     }
-  }, [initialTask, defaultDate, isOpen, assignees]);
+
+    prevIsOpenRef.current = isOpen;
+    prevTaskIdRef.current = initialTask?.id || null;
+  }, [isOpen, initialTask, defaultDate]);
 
   if (!isOpen) return null;
 
@@ -143,6 +154,14 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Completed Date Banner if already completed */}
+            {initialTask?.completedAt && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', background: 'var(--primary-light)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary-border)', marginBottom: '8px' }}>
+                <CheckCircle2 size={14} />
+                <span>Task Completed on: {initialTask.completedAt}</span>
+              </div>
+            )}
+
             {/* Title */}
             <div className="form-group">
               <label className="form-label">

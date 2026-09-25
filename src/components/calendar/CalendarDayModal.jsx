@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote } from 'lucide-react';
+import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, onAddTaskForDate, onEditTask }) => {
@@ -84,6 +84,12 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                               <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
                             </span>
                           )}
+                          {task.completedAt && (
+                            <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
+                              <CheckCircle2 size={10} />
+                              <span>Done</span>
+                            </span>
+                          )}
                           <span className={`badge badge-${task.priority}`}>{task.priority}</span>
                         </div>
                       </div>
@@ -143,6 +149,12 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                             <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
                               <Banknote size={10} />
                               <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
+                            </span>
+                          )}
+                          {task.completedAt && (
+                            <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
+                              <CheckCircle2 size={10} />
+                              <span>Done</span>
                             </span>
                           )}
                           <span className={`badge badge-${task.priority}`}>{task.priority}</span>

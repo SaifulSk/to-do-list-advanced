@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider } from './context/TaskContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { NotificationToast } from './components/common/NotificationToast';
 import { Navbar } from './components/common/Navbar';
 import { StatsOverview } from './components/common/StatsOverview';
 import { TaskFilters } from './components/tasks/TaskFilters';
@@ -141,6 +143,8 @@ function MainLayout() {
           setCurrentView(view);
         }}
       />
+      {/* Global In-App Notification Toast */}
+      <NotificationToast />
     </div>
   );
 }
@@ -150,7 +154,9 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <TaskProvider>
-          <MainLayout />
+          <NotificationProvider>
+            <MainLayout />
+          </NotificationProvider>
         </TaskProvider>
       </ThemeProvider>
     </AuthProvider>
