@@ -109,6 +109,22 @@ export const TaskProvider = ({ children }) => {
                 notifyTaskCompleted(incomingTask);
               }
             });
+          } else if (isInitialTasksSyncRef.current) {
+            // On initial load or app resume: check if any task was completed recently (last 30 mins)
+            // that this device has not notified yet
+            firestoreTasks.forEach((incomingTask) => {
+              if (incomingTask.status === 'completed' && incomingTask.completedAt) {
+                try {
+                  const compTime = parseISO(incomingTask.completedAt.replace(' ', 'T')).getTime();
+                  const diffMin = (Date.now() - compTime) / (1000 * 60);
+                  if (diffMin >= 0 && diffMin <= 30) {
+                    notifyTaskCompleted(incomingTask);
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }
+            });
           }
 
           prevTasksRef.current = firestoreTasks;

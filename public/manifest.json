@@ -4,9 +4,21 @@
   "description": "Minimalist collaborative task management with real-time multi-device sync, smart notifications, and calendar views.",
   "icons": [
     {
+      "src": "./icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
       "src": "./favicon.svg",
       "type": "image/svg+xml",
-      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "sizes": "48x48 72x72 96x96 128x128 256x256 512x512",
       "purpose": "any maskable"
     }
   ],

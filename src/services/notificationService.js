@@ -214,7 +214,11 @@ export async function fireNativeNotification(notification) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
 
-  const iconUrl = './favicon.svg';
+  // Use raster PNG icon (Android drops/rejects SVG icons in NotificationManager)
+  const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || './';
+  const cleanBase = base.replace(/\/$/, '');
+  const iconUrl = `${cleanBase}/icon-192.png`;
+
   const options = {
     body: notification.message,
     icon: iconUrl,
@@ -229,16 +233,44 @@ export async function fireNativeNotification(notification) {
     }
   };
 
-  // 1. Mobile PWA & Android Chrome REQUIRE registration.showNotification
-  if ('serviceWorker' in navigator) {
+  // Hardware vibration on mobile devices
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      navigator.vibrate([200, 100, 200]);
+    } catch (e) {}
+  }
+
+  // 1. Mobile PWA & Android Chrome REQUIRE registration.showNotification
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      // Avoid hanging if ready promise does not resolve immediately
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SW ready timeout')), 1000))
+      ]).catch(async () => {
+        return await navigator.serviceWorker.getRegistration();
+      });
+
       if (registration && typeof registration.showNotification === 'function') {
         await registration.showNotification(notification.title, options);
         return;
       }
     } catch (e) {
-      console.warn('ServiceWorker showNotification failed, attempting fallback:', e);
+      console.warn('ServiceWorker showNotification failed, trying fallback:', e);
+    }
+
+    // Direct message fallback to active service worker controller
+    if (navigator.serviceWorker.controller) {
+      try {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title: notification.title,
+          options
+        });
+        return;
+      } catch (err) {
+        console.warn('Controller postMessage failed:', err);
+      }
     }
   }
 
@@ -250,7 +282,7 @@ export async function fireNativeNotification(notification) {
       n.close();
     };
   } catch (e) {
-    console.warn('Native notification failed:', e);
+    console.warn('Native desktop notification constructor failed:', e);
   }
 }
 

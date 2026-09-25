@@ -22,6 +22,7 @@ export const NotificationBell = () => {
     unreadCount, 
     permission, 
     requestPermission, 
+    sendTestNotification,
     markAsRead, 
     markAllAsRead, 
     clearNotifications,
@@ -75,6 +76,9 @@ export const NotificationBell = () => {
     }
   };
 
+  const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+  const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+
   return (
     <div className="notification-bell-container" ref={containerRef}>
       <button 
@@ -126,18 +130,40 @@ export const NotificationBell = () => {
             </div>
           </div>
 
-          {/* Desktop Permission Banner */}
-          {permission !== 'granted' && permission !== 'unsupported' && (
+          {/* iOS Safari Home Screen Requirement Guide */}
+          {isIOS && !isStandalone && (
+            <div style={{ padding: '8px 12px', background: 'rgba(99, 102, 241, 0.08)', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.71875rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+              <strong>📱 iPhone Notification Setup:</strong> Apple requires adding to Home Screen. Tap Safari Share (⬆️) &rarr; <strong>"Add to Home Screen"</strong>, then open Zenith from your Home Screen.
+            </div>
+          )}
+
+          {/* Permission / Test Alert Controls */}
+          {permission !== 'granted' && permission !== 'unsupported' ? (
             <div className="notification-permission-banner">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Volume2 size={13} color="var(--primary)" />
-                <span>Enable desktop push alerts</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Enable iPhone Push Alerts</span>
               </div>
               <button 
                 className="btn btn-primary notification-perm-btn"
                 onClick={requestPermission}
+                type="button"
               >
                 Allow
+              </button>
+            </div>
+          ) : (
+            <div style={{ padding: '6px 12px', background: 'var(--bg-surface-elevated)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                ✓ Push alerts active
+              </span>
+              <button
+                type="button"
+                className="btn-link-subtle"
+                style={{ fontSize: '0.6875rem', color: 'var(--primary)', fontWeight: 600, padding: 0 }}
+                onClick={() => sendTestNotification()}
+              >
+                Send Test Alert
               </button>
             </div>
           )}

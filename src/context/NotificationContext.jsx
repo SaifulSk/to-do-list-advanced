@@ -134,6 +134,40 @@ export const NotificationProvider = ({ children }) => {
     setNotifications([]);
   }, []);
 
+  // Trigger a test notification to verify mobile/desktop delivery
+  const sendTestNotification = useCallback(async () => {
+    let currentPerm = permission;
+    if (currentPerm !== 'granted') {
+      currentPerm = await handleRequestPermission();
+    }
+
+    if (currentPerm === 'granted') {
+      const testNotif = {
+        id: `test-${Date.now()}`,
+        triggerKey: `test-${Date.now()}`,
+        taskId: 'test-device',
+        title: '🔔 Push Notifications Working!',
+        message: 'Your device is configured to receive instant task completion alerts.',
+        type: 'task_completed',
+        taskTitle: 'Push Notifications Active',
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+
+      await fireNativeNotification(testNotif);
+      setNotifications((prev) => [testNotif, ...prev].slice(0, 50));
+      showToast(testNotif);
+      return { success: true };
+    } else {
+      showToast({
+        title: '⚠️ Permission Blocked',
+        message: 'Notification permission is required. Check browser/phone site settings.',
+        type: 'due_tomorrow'
+      });
+      return { success: false, permission: currentPerm };
+    }
+  }, [permission, handleRequestPermission, showToast]);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const value = {
@@ -142,6 +176,7 @@ export const NotificationProvider = ({ children }) => {
     activeToast,
     permission,
     requestPermission: handleRequestPermission,
+    sendTestNotification,
     dismissToast,
     markAsRead,
     markAllAsRead,
