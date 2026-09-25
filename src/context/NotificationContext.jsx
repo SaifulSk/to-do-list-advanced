@@ -86,6 +86,26 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [tasks, showToast]);
 
+  // Listen for real-time dispatched notifications (e.g. task completed)
+  useEffect(() => {
+    const handleDispatched = (event) => {
+      const notif = event.detail;
+      if (!notif) return;
+
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === notif.id)) return prev;
+        return [notif, ...prev].slice(0, 50);
+      });
+
+      showToast(notif);
+    };
+
+    window.addEventListener('zenith_notification', handleDispatched);
+    return () => {
+      window.removeEventListener('zenith_notification', handleDispatched);
+    };
+  }, [showToast]);
+
   // Check on tasks update and every 60 seconds
   useEffect(() => {
     runNotificationCheck();

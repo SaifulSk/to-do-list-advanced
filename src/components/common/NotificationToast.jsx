@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Clock, Repeat, Flame, Calendar, Bell } from 'lucide-react';
+import { X, Clock, Repeat, Flame, Calendar, Bell, CheckCircle2 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 
 export const NotificationToast = () => {
@@ -9,6 +9,8 @@ export const NotificationToast = () => {
 
   const getIcon = (type) => {
     switch (type) {
+      case 'task_completed':
+        return <CheckCircle2 size={16} color="var(--primary)" />;
       case 'due_tomorrow':
         return <Clock size={16} color="var(--primary)" />;
       case 'recurring_tomorrow':

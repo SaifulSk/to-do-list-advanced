@@ -224,6 +224,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
                   background: 'var(--priority-urgent)', 
                   color: '#ffffff', 
                   border: 'none',
+                  boxShadow: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'

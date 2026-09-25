@@ -296,6 +296,7 @@ export const TaskCard = ({ task, onEdit }) => {
                   background: 'var(--priority-urgent)', 
                   color: '#ffffff', 
                   border: 'none',
+                  boxShadow: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'

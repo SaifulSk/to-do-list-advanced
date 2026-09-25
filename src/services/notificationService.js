@@ -229,3 +229,43 @@ export function fireNativeNotification(notification) {
     console.warn('Native notification failed:', e);
   }
 }
+
+/**
+ * Triggers a push notification immediately when a task is completed.
+ * Fires native Web Notification API, records in in-app storage, and dispatches a custom event.
+ */
+export function notifyTaskCompleted(task) {
+  if (!task) return null;
+
+  const now = new Date();
+  const triggerKey = `task-completed-${task.id}-${now.getTime()}`;
+  const notification = {
+    id: triggerKey,
+    triggerKey,
+    taskId: task.id,
+    title: '🎉 Task Completed!',
+    message: `"${task.title}" has been marked as completed!`,
+    type: 'task_completed',
+    taskTitle: task.title,
+    timestamp: now.toISOString(),
+    read: false
+  };
+
+  // 1. Native Web Notification
+  fireNativeNotification(notification);
+
+  // 2. Persist in in-app notification history
+  try {
+    const existing = getStoredInAppNotifications();
+    saveStoredInAppNotifications([notification, ...existing]);
+  } catch (e) {
+    console.warn('Could not store completion notification', e);
+  }
+
+  // 3. Dispatch window event for NotificationContext / active toasts
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('zenith_notification', { detail: notification }));
+  }
+
+  return notification;
+}

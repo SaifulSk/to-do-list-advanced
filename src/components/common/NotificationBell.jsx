@@ -5,6 +5,7 @@ import {
   Repeat, 
   Calendar, 
   CheckCheck, 
+  CheckCircle2,
   Trash2, 
   Check, 
   Sparkles, 
@@ -48,6 +49,8 @@ export const NotificationBell = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
+      case 'task_completed':
+        return <CheckCircle2 size={15} color="var(--primary)" />;
       case 'due_tomorrow':
         return <Clock size={15} color="var(--primary)" />;
       case 'recurring_tomorrow':

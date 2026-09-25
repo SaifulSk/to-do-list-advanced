@@ -12,6 +12,7 @@ import {
   addAssigneeToFirestore,
   deleteAssigneeFromFirestore
 } from '../services/firebase';
+import { notifyTaskCompleted } from '../services/notificationService';
 
 const TaskContext = createContext(null);
 
@@ -213,7 +214,12 @@ export const TaskProvider = ({ children }) => {
 
   // Update Task (Optimistic UI)
   const updateTask = async (taskId, updates) => {
+    const existingTask = tasks.find((t) => t.id === taskId);
     const finalUpdates = { ...updates };
+    const isBecomingCompleted = 
+      finalUpdates.status === 'completed' && 
+      (!existingTask || existingTask.status !== 'completed');
+
     if (finalUpdates.status === 'completed' && finalUpdates.completedAt === undefined) {
       finalUpdates.completedAt = format(new Date(), 'yyyy-MM-dd HH:mm');
     } else if (finalUpdates.status && finalUpdates.status !== 'completed' && finalUpdates.completedAt === undefined) {
@@ -221,6 +227,11 @@ export const TaskProvider = ({ children }) => {
     }
 
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t)));
+
+    // Trigger push notification on todo completion
+    if (isBecomingCompleted && existingTask) {
+      notifyTaskCompleted({ ...existingTask, ...finalUpdates });
+    }
 
     if (isFirebaseConnected) {
       try {

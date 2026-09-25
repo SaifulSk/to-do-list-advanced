@@ -365,12 +365,12 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
               </button>
               <button 
                 type="button" 
-                className="btn btn-danger" 
+                className="btn" 
                 style={{ 
                   background: 'var(--priority-urgent)', 
                   color: '#ffffff', 
-                  border: '2px solid #000000',
-                  boxShadow: '3px 3px 0 #000000',
+                  border: 'none',
+                  boxShadow: 'none',
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '6px' 
