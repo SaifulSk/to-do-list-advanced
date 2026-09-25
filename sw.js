@@ -17,8 +17,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Zenith Todo';
     const options = {
       body: data.message || data.body || '',
-      icon: './favicon.svg',
-      badge: './favicon.svg',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
       tag: data.tag || 'zenith-push',
       vibrate: [200, 100, 200],
       data: data
@@ -26,6 +26,14 @@ self.addEventListener('push', (event) => {
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (err) {
     console.warn('Error handling push event in SW:', err);
+  }
+});
+
+// Handle direct showNotification messages from client app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, options } = event.data;
+    event.waitUntil(self.registration.showNotification(title, options));
   }
 });
 
