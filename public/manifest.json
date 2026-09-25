@@ -1,0 +1,19 @@
+{
+  "short_name": "Zenith",
+  "name": "Zenith Todo — Minimalist Task & Collaboration Studio",
+  "description": "Minimalist collaborative task management with real-time multi-device sync, smart notifications, and calendar views.",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#090d16",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "./"
+}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { format, addDays, addWeeks, addMonths, addYears, parseISO, isValid } from 'date-fns';
 import { useAuth } from './AuthContext';
@@ -86,6 +86,9 @@ export const TaskProvider = ({ children }) => {
     }
   }, [assignees]);
 
+  const prevTasksRef = useRef(tasks);
+  const isInitialTasksSyncRef = useRef(true);
+
   // Real-time Firestore sync for Tasks
   useEffect(() => {
     if (!isFirebaseConnected) {
@@ -97,6 +100,19 @@ export const TaskProvider = ({ children }) => {
       currentUser ? currentUser.uid : null,
       (firestoreTasks) => {
         if (Array.isArray(firestoreTasks)) {
+          // Detect remote completions across devices (e.g. Desktop -> Mobile PWA)
+          if (!isInitialTasksSyncRef.current && prevTasksRef.current && prevTasksRef.current.length > 0) {
+            const prevMap = new Map(prevTasksRef.current.map((t) => [t.id, t]));
+            firestoreTasks.forEach((incomingTask) => {
+              const prevTask = prevMap.get(incomingTask.id);
+              if (prevTask && prevTask.status !== 'completed' && incomingTask.status === 'completed') {
+                notifyTaskCompleted(incomingTask);
+              }
+            });
+          }
+
+          prevTasksRef.current = firestoreTasks;
+          isInitialTasksSyncRef.current = false;
           setTasks(firestoreTasks);
         }
         setLoading(false);
@@ -196,6 +212,9 @@ export const TaskProvider = ({ children }) => {
 
     // Instantly update local state
     setTasks((prev) => [newTask, ...prev.filter(t => t.id !== tempId)]);
+    if (prevTasksRef.current) {
+      prevTasksRef.current = [newTask, ...prevTasksRef.current.filter(t => t.id !== tempId)];
+    }
 
     // Persist to Firestore
     if (isFirebaseConnected) {
@@ -203,6 +222,9 @@ export const TaskProvider = ({ children }) => {
         const { id, ...cleanData } = newTask;
         const docRef = await addTaskToFirestore(cleanData);
         setTasks((prev) => prev.map(t => t.id === tempId ? { ...t, id: docRef.id } : t));
+        if (prevTasksRef.current) {
+          prevTasksRef.current = prevTasksRef.current.map(t => t.id === tempId ? { ...t, id: docRef.id } : t);
+        }
         newTask.id = docRef.id;
       } catch (err) {
         console.error('Firestore write error, keeping local task:', err);
@@ -227,6 +249,9 @@ export const TaskProvider = ({ children }) => {
     }
 
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t)));
+    if (prevTasksRef.current) {
+      prevTasksRef.current = prevTasksRef.current.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t));
+    }
 
     // Trigger push notification on todo completion
     if (isBecomingCompleted && existingTask) {
@@ -245,6 +270,9 @@ export const TaskProvider = ({ children }) => {
   // Delete Task (Optimistic UI)
   const deleteTask = async (taskId) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    if (prevTasksRef.current) {
+      prevTasksRef.current = prevTasksRef.current.filter((t) => t.id !== taskId);
+    }
     if (isFirebaseConnected) {
       try {
         await deleteTaskFromFirestore(taskId);

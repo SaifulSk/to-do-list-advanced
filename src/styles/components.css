@@ -918,6 +918,29 @@
     width: 100%;
     gap: 8px;
   }
+  .notification-dropdown {
+    position: fixed !important;
+    top: 96px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    max-height: calc(100vh - 110px) !important;
+    z-index: 10000 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+  }
+  .notification-toast-container {
+    top: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+  .notification-toast {
+    width: 100% !important;
+    max-width: 400px !important;
+  }
   .filters-desktop {
     display: none !important;
   }
@@ -1264,7 +1287,7 @@
 .notification-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   width: 340px;
   max-width: 90vw;
   background: var(--bg-surface);

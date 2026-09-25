@@ -208,19 +208,43 @@ export function evaluateTaskNotifications(tasks) {
 }
 
 /**
- * Fires a native browser notification if permissions are granted
+ * Fires a native browser notification (via ServiceWorker on mobile PWA or Notification constructor on desktop)
  */
-export function fireNativeNotification(notification) {
+export async function fireNativeNotification(notification) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
 
-  try {
-    const n = new Notification(notification.title, {
-      body: notification.message,
-      icon: '/favicon.ico',
-      tag: notification.triggerKey
-    });
+  const iconUrl = './favicon.svg';
+  const options = {
+    body: notification.message,
+    icon: iconUrl,
+    badge: iconUrl,
+    tag: notification.triggerKey || `zenith-notif-${Date.now()}`,
+    renotify: true,
+    vibrate: [200, 100, 200],
+    data: {
+      url: typeof window !== 'undefined' ? window.location.href : './',
+      taskId: notification.taskId,
+      type: notification.type
+    }
+  };
 
+  // 1. Mobile PWA & Android Chrome REQUIRE registration.showNotification
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration && typeof registration.showNotification === 'function') {
+        await registration.showNotification(notification.title, options);
+        return;
+      }
+    } catch (e) {
+      console.warn('ServiceWorker showNotification failed, attempting fallback:', e);
+    }
+  }
+
+  // 2. Desktop Notification API constructor fallback
+  try {
+    const n = new Notification(notification.title, options);
     n.onclick = () => {
       window.focus();
       n.close();
@@ -233,15 +257,23 @@ export function fireNativeNotification(notification) {
 /**
  * Triggers a push notification immediately when a task is completed.
  * Fires native Web Notification API, records in in-app storage, and dispatches a custom event.
+ * Uses completion timestamp de-duplication to prevent double-firing across devices/snapshots.
  */
 export function notifyTaskCompleted(task) {
-  if (!task) return null;
+  if (!task || !task.id) return null;
+
+  // De-duplicate per task completion event
+  const completionKey = `task-completed-${task.id}-${task.completedAt || 'done'}`;
+  const sentKeys = getSentTriggerKeys();
+  if (sentKeys[completionKey]) {
+    return null;
+  }
+  markTriggerSent(completionKey);
 
   const now = new Date();
-  const triggerKey = `task-completed-${task.id}-${now.getTime()}`;
   const notification = {
-    id: triggerKey,
-    triggerKey,
+    id: `notif-${task.id}-${now.getTime()}`,
+    triggerKey: completionKey,
     taskId: task.id,
     title: '🎉 Task Completed!',
     message: `"${task.title}" has been marked as completed!`,
@@ -251,7 +283,7 @@ export function notifyTaskCompleted(task) {
     read: false
   };
 
-  // 1. Native Web Notification
+  // 1. Native Web / Mobile PWA Notification
   fireNativeNotification(notification);
 
   // 2. Persist in in-app notification history
