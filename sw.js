@@ -9,36 +9,24 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Handle incoming push events from Apple APNs / Google FCM (delivered even when PWA is killed)
+// Handle incoming push events if sent from web push backend
 self.addEventListener('push', (event) => {
-  let title = 'Zenith Todo';
-  let body = 'You have a new task update.';
-  let tag = 'zenith-push-' + Date.now();
-  let payloadData = {};
-
-  if (event.data) {
-    try {
-      const json = event.data.json();
-      title = json.title || title;
-      body = json.body || json.message || body;
-      tag = json.tag || tag;
-      payloadData = json.data || json;
-    } catch (e) {
-      body = event.data.text() || body;
-    }
+  if (!event.data) return;
+  try {
+    const data = event.data.json();
+    const title = data.title || 'Zenith Todo';
+    const options = {
+      body: data.message || data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'zenith-push',
+      vibrate: [200, 100, 200],
+      data: data
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.warn('Error handling push event in SW:', err);
   }
-
-  const options = {
-    body: body,
-    icon: './icon-192.png',
-    badge: './icon-192.png',
-    tag: tag,
-    renotify: true,
-    vibrate: [200, 100, 200],
-    data: payloadData
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Handle direct showNotification messages from client app
