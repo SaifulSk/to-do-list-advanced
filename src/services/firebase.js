@@ -18,6 +18,8 @@ import {
   setDoc,
   onSnapshot, 
   query, 
+  where,
+  getDocs,
   orderBy, 
   serverTimestamp 
 } from 'firebase/firestore';
@@ -96,13 +98,36 @@ export const clearFirebaseConfig = () => {
 
 /* --- Real-Time Firestore Tasks API --- */
 
+export const claimLegacyTodosForSaiful = async (targetUserId) => {
+  if (!db || !isConfigured || !targetUserId) return;
+  try {
+    const legacyQ = query(
+      collection(db, 'todos'),
+      where('userEmail', '==', 'saiful@yopmail.com')
+    );
+    const snap = await getDocs(legacyQ);
+    const updates = snap.docs
+      .filter((d) => d.data().userId !== targetUserId)
+      .map((d) => updateDoc(doc(db, 'todos', d.id), { userId: targetUserId }));
+    if (updates.length > 0) {
+      await Promise.all(updates);
+    }
+  } catch (e) {
+    console.warn('Error claiming legacy todos for saiful@yopmail.com:', e);
+  }
+};
+
 export const subscribeToUserTasks = (userId, onData, onError) => {
-  if (!db || !isConfigured) return () => {};
+  if (!db || !isConfigured || !userId) {
+    onData([]);
+    return () => {};
+  }
 
   try {
+    // Query exclusively by userId to isolate tasks per account
     const q = query(
       collection(db, 'todos'),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', userId)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -114,6 +139,14 @@ export const subscribeToUserTasks = (userId, onData, onError) => {
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
         };
       });
+
+      // In-memory sort by createdAt descending (avoids requiring composite indexes in Firestore)
+      tasks.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+
       onData(tasks);
     }, (error) => {
       console.warn('Firestore subscription error (e.g. security rules or index setup):', error);

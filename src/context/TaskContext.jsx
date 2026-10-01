@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { 
   isConfigured as isFirebaseLive, 
   subscribeToUserTasks,
+  claimLegacyTodosForSaiful,
   addTaskToFirestore,
   updateTaskInFirestore,
   deleteTaskFromFirestore,
@@ -30,10 +31,12 @@ const LOCAL_ASSIGNEES_KEY = 'zenith_assignees_master';
 export const TaskProvider = ({ children }) => {
   const { currentUser, isFirebaseConnected } = useAuth();
 
-  // Tasks state
+  const userKey = currentUser ? currentUser.uid : 'guest';
+
+  // Tasks state scoped to current user
   const [tasks, setTasks] = useState(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_TASKS_KEY);
+      const saved = localStorage.getItem(`zenith_user_tasks_${userKey}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
@@ -43,6 +46,26 @@ export const TaskProvider = ({ children }) => {
     }
     return [];
   });
+
+  // Switch tasks state when currentUser changes (prevents account bleed)
+  useEffect(() => {
+    const currentKey = currentUser ? currentUser.uid : 'guest';
+    try {
+      const saved = localStorage.getItem(`zenith_user_tasks_${currentKey}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setTasks(parsed);
+          prevTasksRef.current = parsed;
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    setTasks([]);
+    prevTasksRef.current = [];
+  }, [currentUser?.uid]);
 
   // Assignees Master state
   const [assignees, setAssignees] = useState(() => {
@@ -71,12 +94,13 @@ export const TaskProvider = ({ children }) => {
 
   // Sync to local storage for backup
   useEffect(() => {
+    const currentKey = currentUser ? currentUser.uid : 'guest';
     try {
-      localStorage.setItem(LOCAL_TASKS_KEY, JSON.stringify(tasks));
+      localStorage.setItem(`zenith_user_tasks_${currentKey}`, JSON.stringify(tasks));
     } catch (e) {
       console.warn('Could not persist tasks to localStorage', e);
     }
-  }, [tasks]);
+  }, [tasks, currentUser?.uid]);
 
   useEffect(() => {
     try {
@@ -89,15 +113,24 @@ export const TaskProvider = ({ children }) => {
   const prevTasksRef = useRef(tasks);
   const isInitialTasksSyncRef = useRef(true);
 
-  // Real-time Firestore sync for Tasks
+  // Real-time Firestore sync for Tasks (Strictly isolated by user)
   useEffect(() => {
-    if (!isFirebaseConnected) {
+    if (!isFirebaseConnected || !currentUser) {
+      if (!currentUser) setLoading(false);
       return;
     }
 
     setLoading(true);
+
+    // If logging in as saiful@yopmail.com, claim any legacy todos to this user's UID
+    if (currentUser.email === 'saiful@yopmail.com') {
+      claimLegacyTodosForSaiful(currentUser.uid).catch((err) => {
+        console.warn('Could not claim todos for saiful:', err);
+      });
+    }
+
     const unsubscribe = subscribeToUserTasks(
-      currentUser ? currentUser.uid : null,
+      currentUser.uid,
       (firestoreTasks) => {
         if (Array.isArray(firestoreTasks)) {
           // Detect remote completions across devices (e.g. Desktop -> Mobile PWA)
@@ -142,7 +175,7 @@ export const TaskProvider = ({ children }) => {
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [isFirebaseConnected, currentUser]);
+  }, [isFirebaseConnected, currentUser?.uid, currentUser?.email]);
 
   // Real-time Firestore sync for Assignees Master
   useEffect(() => {
@@ -223,7 +256,8 @@ export const TaskProvider = ({ children }) => {
       createdAt: taskData.createdAt || format(new Date(), 'yyyy-MM-dd'),
       status: taskData.status || 'todo',
       completedAt: isCompleted ? (taskData.completedAt || format(new Date(), 'yyyy-MM-dd HH:mm')) : null,
-      userId: currentUser ? currentUser.uid : 'user-local'
+      userId: currentUser ? currentUser.uid : 'user-local',
+      userEmail: currentUser?.email || 'user-local'
     };
 
     // Instantly update local state
