@@ -350,6 +350,15 @@ export const TaskProvider = ({ children }) => {
     const isNowCompleted = task.status !== 'completed';
     const newStatus = isNowCompleted ? 'completed' : 'todo';
 
+    // Synchronize all steps to completed or incomplete
+    let updatedSteps = task.steps;
+    if (task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0) {
+      updatedSteps = task.steps.map((step) => ({
+        ...step,
+        completed: isNowCompleted
+      }));
+    }
+
     if (isNowCompleted) {
       try {
         confetti({
@@ -401,14 +410,69 @@ export const TaskProvider = ({ children }) => {
             tags: task.tags || [],
             recurrence: task.recurrence,
             amount: task.amount !== undefined ? task.amount : null,
-            currency: task.currency || '₹'
+            currency: task.currency || '₹',
+            hasSteps: task.hasSteps || false,
+            steps: Array.isArray(task.steps) ? task.steps.map(s => ({ ...s, completed: false })) : []
           });
         }, 150);
       }
     }
 
     const completedAt = isNowCompleted ? format(new Date(), 'yyyy-MM-dd HH:mm') : null;
-    await updateTask(taskId, { status: newStatus, completedAt });
+    await updateTask(taskId, { 
+      status: newStatus, 
+      completedAt,
+      ...(updatedSteps ? { steps: updatedSteps } : {})
+    });
+  };
+
+  // Toggle individual step in multi-stepped task
+  const toggleTaskStep = async (taskId, stepId) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || !Array.isArray(task.steps)) return;
+
+    const updatedSteps = task.steps.map((step) => {
+      if (step.id === stepId) {
+        return { ...step, completed: !step.completed };
+      }
+      return step;
+    });
+
+    const completedCount = updatedSteps.filter((s) => s.completed).length;
+    const totalCount = updatedSteps.length;
+
+    let newStatus = task.status;
+    let completedAt = task.completedAt;
+
+    if (completedCount === totalCount && totalCount > 0) {
+      // All steps done -> task is fully completed
+      newStatus = 'completed';
+      completedAt = format(new Date(), 'yyyy-MM-dd HH:mm');
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: ['#6366f1', '#10b981', '#a855f7', '#38bdf8']
+        });
+      } catch (e) {}
+    } else if (completedCount > 0) {
+      // At least one step done, but not all -> AUTOMATICALLY IN PROGRESS!
+      newStatus = 'in_progress';
+      completedAt = null;
+    } else {
+      // 0 steps done -> revert to 'todo' if it was in_progress or completed
+      if (task.status === 'in_progress' || task.status === 'completed') {
+        newStatus = 'todo';
+      }
+      completedAt = null;
+    }
+
+    await updateTask(taskId, {
+      steps: updatedSteps,
+      status: newStatus,
+      completedAt
+    });
   };
 
   // Filtered and Sorted Tasks
@@ -536,6 +600,7 @@ export const TaskProvider = ({ children }) => {
     deleteTask,
     toggleTaskComplete,
     toggleTaskInProgress,
+    toggleTaskStep,
     addAssignee,
     deleteAssignee
   };

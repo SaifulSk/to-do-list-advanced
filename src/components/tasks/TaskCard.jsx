@@ -15,14 +15,18 @@ import {
   X,
   Repeat,
   Banknote,
-  CheckCircle2
+  CheckCircle2,
+  ListChecks,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
-  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask } = useTasks();
+  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask, toggleTaskStep } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isStepsExpanded, setIsStepsExpanded] = useState(true);
 
   const isCompleted = task.status === 'completed';
   const isInProgress = task.status === 'in_progress';
@@ -132,6 +136,78 @@ export const TaskCard = ({ task, onEdit }) => {
         {task.description && (
           <p className="task-desc">{task.description}</p>
         )}
+
+        {/* Multi-Step Checklist */}
+        {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
+          const completedCount = task.steps.filter((s) => s.completed).length;
+          const totalCount = task.steps.length;
+          const percentage = Math.round((completedCount / totalCount) * 100);
+
+          return (
+            <div className="card-steps-section">
+              <div 
+                className="card-steps-header" 
+                onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+                title="Click to toggle steps display"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ListChecks size={13} color="var(--primary)" />
+                  <span className="card-steps-label">
+                    Steps ({completedCount}/{totalCount})
+                  </span>
+                  <span className={`card-steps-pill ${percentage === 100 ? 'done' : ''}`}>
+                    {percentage}%
+                  </span>
+                </div>
+                <button 
+                  type="button" 
+                  className="btn-icon" 
+                  style={{ width: '20px', height: '20px', padding: 0 }}
+                  aria-label={isStepsExpanded ? "Collapse steps" : "Expand steps"}
+                >
+                  {isStepsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="card-steps-bar-track">
+                <div 
+                  className="card-steps-bar-fill" 
+                  style={{ 
+                    width: `${percentage}%`,
+                    background: percentage === 100 ? '#10b981' : 'var(--primary)' 
+                  }} 
+                />
+              </div>
+
+              {/* Step Checklist Rows */}
+              {isStepsExpanded && (
+                <div className="card-steps-list">
+                  {task.steps.map((step, idx) => (
+                    <div 
+                      key={step.id || idx} 
+                      className={`card-step-row ${step.completed ? 'completed' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTaskStep(task.id, step.id);
+                      }}
+                    >
+                      <div 
+                        className={`custom-checkbox card-step-checkbox ${step.completed ? 'checked' : ''}`}
+                        title={step.completed ? "Mark step incomplete" : "Mark step complete"}
+                      >
+                        {step.completed && <Check size={10} />}
+                      </div>
+                      <span className="card-step-text">
+                        {step.title}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Metadata Row: Status, Priority, Due Date, Created Date, Assigned To, Need Help From */}
         <div className="task-metadata">

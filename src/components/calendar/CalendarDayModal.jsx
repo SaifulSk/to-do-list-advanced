@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote, CheckCircle2, ListChecks } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, onAddTaskForDate, onEditTask }) => {
@@ -90,6 +90,12 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                               <span>Done</span>
                             </span>
                           )}
+                          {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (
+                            <span className="badge" style={{ fontSize: '0.6875rem', gap: '3px', background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                              <ListChecks size={10} />
+                              <span>{task.steps.filter(s => s.completed).length}/{task.steps.length}</span>
+                            </span>
+                          )}
                           <span className={`badge badge-${task.priority}`}>{task.priority}</span>
                         </div>
                       </div>
@@ -155,6 +161,12 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                             <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
                               <CheckCircle2 size={10} />
                               <span>Done</span>
+                            </span>
+                          )}
+                          {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (
+                            <span className="badge" style={{ fontSize: '0.6875rem', gap: '3px', background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                              <ListChecks size={10} />
+                              <span>{task.steps.filter(s => s.completed).length}/{task.steps.length}</span>
                             </span>
                           )}
                           <span className={`badge badge-${task.priority}`}>{task.priority}</span>

@@ -14,7 +14,10 @@ import {
   AlertCircle, 
   Plus, 
   X,
-  CheckCircle2 
+  CheckCircle2,
+  ListChecks,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -25,6 +28,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
     tasks, 
     toggleTaskComplete, 
     toggleTaskInProgress, 
+    toggleTaskStep,
     deleteTask, 
     updateTask,
     searchQuery,
@@ -38,6 +42,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
   } = useTasks();
 
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
+  const [expandedTasks, setExpandedTasks] = useState({});
 
   const isFiltering = searchQuery || filterPriority !== 'all' || filterStatus !== 'all' || filterNeedHelp;
 
@@ -163,6 +168,55 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                       {task.description}
                     </div>
                   )}
+
+                  {/* Multi-Step Checklist for Table View */}
+                  {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
+                    const completedStepsCount = task.steps.filter((s) => s.completed).length;
+                    const totalStepsCount = task.steps.length;
+                    const isExpanded = !!expandedTasks[task.id];
+                    const percentage = Math.round((completedStepsCount / totalStepsCount) * 100);
+
+                    return (
+                      <div className="table-steps-container">
+                        <button
+                          type="button"
+                          className="table-steps-toggle-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedTasks((prev) => ({ ...prev, [task.id]: !prev[task.id] }));
+                          }}
+                          title="Click to view/complete steps"
+                        >
+                          <ListChecks size={12} color="var(--primary)" />
+                          <span>{completedStepsCount}/{totalStepsCount} steps ({percentage}%)</span>
+                          {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="table-steps-dropdown">
+                            {task.steps.map((step, idx) => (
+                              <div
+                                key={step.id || idx}
+                                className={`table-step-row ${step.completed ? 'completed' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleTaskStep(task.id, step.id);
+                                }}
+                              >
+                                <div
+                                  className={`custom-checkbox table-step-checkbox ${step.completed ? 'checked' : ''}`}
+                                  title={step.completed ? "Mark step incomplete" : "Mark step complete"}
+                                >
+                                  {step.completed && <Check size={9} />}
+                                </div>
+                                <span className="table-step-text">{step.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
 
                 {/* Status Toggle */}
