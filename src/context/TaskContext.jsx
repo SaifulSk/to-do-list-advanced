@@ -84,6 +84,7 @@ export const TaskProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   // Filters state
+  const [taskTypeTab, setTaskTypeTab] = useState('normal'); // 'normal' | 'recurring'
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('all'); // all, urgent, high, medium, low
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, completed
@@ -475,9 +476,63 @@ export const TaskProvider = ({ children }) => {
     });
   };
 
-  // Filtered and Sorted Tasks
+  // Toggle recurring task completion on a specific date (yyyy-MM-dd)
+  const toggleRecurringDateComplete = async (taskId, dateStr) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const completedDates = Array.isArray(task.completedDates) ? [...task.completedDates] : [];
+    const isCompletedForDate = completedDates.includes(dateStr);
+    let updatedCompletedDates;
+
+    if (isCompletedForDate) {
+      updatedCompletedDates = completedDates.filter((d) => d !== dateStr);
+    } else {
+      updatedCompletedDates = [...completedDates, dateStr];
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: ['#6366f1', '#10b981', '#a855f7', '#38bdf8']
+        });
+      } catch (e) {}
+    }
+
+    await updateTask(taskId, {
+      completedDates: updatedCompletedDates,
+      completedAt: !isCompletedForDate ? format(new Date(), 'yyyy-MM-dd HH:mm') : task.completedAt
+    });
+  };
+
+  // Toggle stop / resume recurrence
+  const toggleStopRecurrence = async (taskId) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const willBeStopped = !task.isRecurringStopped;
+    const recurrenceStoppedAt = willBeStopped ? format(new Date(), 'yyyy-MM-dd') : null;
+
+    await updateTask(taskId, {
+      isRecurringStopped: willBeStopped,
+      recurrenceStoppedAt
+    });
+  };
+
+  // Normal vs Recurring tasks segmentation
+  const normalTasks = useMemo(() => {
+    return tasks.filter((t) => !t.recurrence || t.recurrence === 'none');
+  }, [tasks]);
+
+  const recurringTasks = useMemo(() => {
+    return tasks.filter((t) => t.recurrence && t.recurrence !== 'none');
+  }, [tasks]);
+
+  // Filtered and Sorted Tasks (Filtered according to active tab: normal vs recurring)
   const filteredTasks = useMemo(() => {
-    return tasks
+    const baseTasks = taskTypeTab === 'normal' ? normalTasks : recurringTasks;
+
+    return baseTasks
       .filter((task) => {
         // Search Filter
         if (searchQuery.trim()) {
@@ -542,7 +597,7 @@ export const TaskProvider = ({ children }) => {
 
         return sortOrder === 'asc' ? compare : -compare;
       });
-  }, [tasks, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder]);
+  }, [taskTypeTab, normalTasks, recurringTasks, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder]);
 
   // Combined all assignees from tasks + Assignee Master
   const allAssignees = useMemo(() => {
@@ -554,16 +609,17 @@ export const TaskProvider = ({ children }) => {
     return Array.from(set);
   }, [tasks, assignees]);
 
-  // Metrics for Stats Bar
+  // Metrics for Stats Bar: reflects the active tab (Normal vs Recurring)
   const stats = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter((t) => t.status === 'completed').length;
-    const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
-    const needHelp = tasks.filter((t) => t.needHelpFrom && t.needHelpFrom.name && t.status !== 'completed').length;
+    const activeList = taskTypeTab === 'normal' ? normalTasks : recurringTasks;
+    const total = activeList.length;
+    const completed = activeList.filter((t) => t.status === 'completed').length;
+    const inProgress = activeList.filter((t) => t.status === 'in_progress').length;
+    const needHelp = activeList.filter((t) => t.needHelpFrom && t.needHelpFrom.name && t.status !== 'completed').length;
     
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayTimestamp = new Date(todayStr).getTime();
-    const dueSoon = tasks.filter((t) => {
+    const dueSoon = activeList.filter((t) => {
       if (t.status === 'completed' || !t.dueDate) return false;
       const dueTimestamp = new Date(t.dueDate).getTime();
       return dueTimestamp <= todayTimestamp + 86400000 * 2;
@@ -571,11 +627,24 @@ export const TaskProvider = ({ children }) => {
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    return { total, completed, inProgress, needHelp, dueSoon, completionRate };
-  }, [tasks]);
+    return { 
+      total, 
+      completed, 
+      inProgress, 
+      needHelp, 
+      dueSoon, 
+      completionRate,
+      normalCount: normalTasks.length,
+      recurringCount: recurringTasks.length
+    };
+  }, [taskTypeTab, normalTasks, recurringTasks]);
 
   const value = {
     tasks,
+    normalTasks,
+    recurringTasks,
+    taskTypeTab,
+    setTaskTypeTab,
     assignees,
     filteredTasks,
     loading,
@@ -601,6 +670,8 @@ export const TaskProvider = ({ children }) => {
     toggleTaskComplete,
     toggleTaskInProgress,
     toggleTaskStep,
+    toggleRecurringDateComplete,
+    toggleStopRecurrence,
     addAssignee,
     deleteAssignee
   };

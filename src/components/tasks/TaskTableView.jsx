@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   ListChecks,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  PauseCircle,
+  PlayCircle
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -29,6 +31,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
     toggleTaskComplete, 
     toggleTaskInProgress, 
     toggleTaskStep,
+    toggleStopRecurrence,
     deleteTask, 
     updateTask,
     searchQuery,
@@ -287,10 +290,17 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                 {/* Recurrence */}
                 <td>
                   {task.recurrence && task.recurrence !== 'none' ? (
-                    <span className="badge badge-recurrence">
-                      <Repeat size={11} />
-                      <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                      <span className="badge badge-recurrence">
+                        <Repeat size={11} />
+                        <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+                      </span>
+                      {task.isRecurringStopped && (
+                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
+                          ⏸ Stopped
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                   )}
@@ -353,6 +363,17 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                 {/* Actions */}
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    {task.recurrence && task.recurrence !== 'none' && (
+                      <button
+                        type="button"
+                        className={`btn-stop-recurrence ${task.isRecurringStopped ? 'resume' : 'stop'}`}
+                        onClick={() => toggleStopRecurrence(task.id)}
+                        title={task.isRecurringStopped ? "Resume recurring schedule" : "Stop recurrence for this task"}
+                      >
+                        {task.isRecurringStopped ? <PlayCircle size={11} /> : <PauseCircle size={11} />}
+                        <span>{task.isRecurringStopped ? 'Resume' : 'Stop'}</span>
+                      </button>
+                    )}
                     <button 
                       className="btn-icon" 
                       style={{ width: '28px', height: '28px' }} 

@@ -15,7 +15,9 @@ import {
   ListChecks, 
   Plus, 
   Trash2, 
-  Check 
+  Check,
+  PauseCircle,
+  PlayCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -30,6 +32,10 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
   
   // Recurrence & Amount fields
   const [recurrence, setRecurrence] = useState('none');
+  const [recurringDayOfWeek, setRecurringDayOfWeek] = useState('monday');
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1);
+  const [recurringMonth, setRecurringMonth] = useState(1);
+  const [isRecurringStopped, setIsRecurringStopped] = useState(false);
   const [amount, setAmount] = useState('');
 
   // Multiple Steps / Subtasks state
@@ -65,6 +71,10 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setPriority(initialTask.priority || 'medium');
         setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
         setRecurrence(initialTask.recurrence || 'none');
+        setRecurringDayOfWeek(initialTask.recurringDayOfWeek || (initialTask.dueDate ? format(new Date(initialTask.dueDate), 'EEEE').toLowerCase() : format(new Date(), 'EEEE').toLowerCase()));
+        setRecurringDayOfMonth(initialTask.recurringDayOfMonth || (initialTask.dueDate ? new Date(initialTask.dueDate).getDate() : new Date().getDate()));
+        setRecurringMonth(initialTask.recurringMonth || (initialTask.dueDate ? (new Date(initialTask.dueDate).getMonth() + 1) : (new Date().getMonth() + 1)));
+        setIsRecurringStopped(Boolean(initialTask.isRecurringStopped));
         setAmount(initialTask.amount !== undefined && initialTask.amount !== null ? String(initialTask.amount) : '');
         
         // Steps initialization
@@ -90,11 +100,16 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
       } else {
         // New task default state
+        const now = new Date();
         setTitle('');
         setDescription('');
         setPriority('medium');
         setDueDate(defaultDate || '');
         setRecurrence('none');
+        setRecurringDayOfWeek(format(now, 'EEEE').toLowerCase());
+        setRecurringDayOfMonth(now.getDate());
+        setRecurringMonth(now.getMonth() + 1);
+        setIsRecurringStopped(false);
         setAmount('');
         setHasSteps(false);
         setSteps([]);
@@ -194,8 +209,16 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       hasSteps: finalHasSteps,
       steps: cleanedSteps,
       dueDate: dueDate ? dueDate : null, // Optional
-      createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'), // Current date
+      createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'),
       recurrence: recurrence !== 'none' ? recurrence : null,
+      recurringDayOfWeek: recurrence === 'weekly' ? recurringDayOfWeek : null,
+      recurringDayOfMonth: (recurrence === 'monthly' || recurrence === 'yearly') ? Number(recurringDayOfMonth) : null,
+      recurringMonth: recurrence === 'yearly' ? Number(recurringMonth) : null,
+      isRecurringStopped: recurrence !== 'none' ? Boolean(isRecurringStopped) : false,
+      recurrenceStoppedAt: (recurrence !== 'none' && isRecurringStopped)
+        ? (initialTask?.recurrenceStoppedAt || format(new Date(), 'yyyy-MM-dd'))
+        : null,
+      completedDates: Array.isArray(initialTask?.completedDates) ? initialTask.completedDates : [],
       amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
       currency: amount !== '' ? '₹' : null,
       assignedTo: assignedName.trim()
@@ -472,6 +495,146 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                 </div>
               </div>
             </div>
+
+            {/* Recurrence Specific Settings Panel */}
+            {recurrence !== 'none' && (
+              <div 
+                className="recurrence-options-panel" 
+                style={{ 
+                  marginTop: '12px', 
+                  padding: '12px 14px', 
+                  background: 'var(--bg-surface-elevated)', 
+                  borderRadius: 'var(--radius-md)', 
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px' 
+                }}
+              >
+                {recurrence === 'daily' && (
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Repeat size={14} color="var(--primary)" />
+                    <span><strong>Daily:</strong> This task will automatically appear every day after its creation date ({initialTask?.createdAt || format(new Date(), 'MMM d, yyyy')}).</span>
+                  </div>
+                )}
+
+                {recurrence === 'weekly' && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
+                      Which day of the week should it repeat on?
+                    </label>
+                    <select
+                      className="select"
+                      value={recurringDayOfWeek}
+                      onChange={(e) => setRecurringDayOfWeek(e.target.value)}
+                    >
+                      <option value="monday">Every Monday</option>
+                      <option value="tuesday">Every Tuesday</option>
+                      <option value="wednesday">Every Wednesday</option>
+                      <option value="thursday">Every Thursday</option>
+                      <option value="friday">Every Friday</option>
+                      <option value="saturday">Every Saturday</option>
+                      <option value="sunday">Every Sunday</option>
+                    </select>
+                  </div>
+                )}
+
+                {recurrence === 'monthly' && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
+                      Which day of the month should it repeat on?
+                    </label>
+                    <select
+                      className="select"
+                      value={recurringDayOfMonth}
+                      onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                        const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                        return (
+                          <option key={day} value={day}>
+                            {day}{suffix} of every month
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                {recurrence === 'yearly' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
+                        Month:
+                      </label>
+                      <select
+                        className="select"
+                        value={recurringMonth}
+                        onChange={(e) => setRecurringMonth(Number(e.target.value))}
+                      >
+                        {[
+                          'January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'
+                        ].map((m, idx) => (
+                          <option key={m} value={idx + 1}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
+                        Day:
+                      </label>
+                      <select
+                        className="select"
+                        value={recurringDayOfMonth}
+                        onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                          const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                          return (
+                            <option key={day} value={day}>{day}{suffix}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recurrence Status: Active vs Stopped */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: isRecurringStopped ? 'var(--priority-urgent)' : '#10b981' }}>
+                      {isRecurringStopped ? '⏸ Recurrence Stopped' : '✓ Recurrence Active'}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {isRecurringStopped 
+                        ? 'Paused: this task will not appear on future recurring dates.' 
+                        : 'Active: task will automatically appear on its scheduled dates.'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`btn ${isRecurringStopped ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ 
+                      padding: '4px 10px', 
+                      fontSize: '0.75rem', 
+                      height: '28px', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '5px',
+                      color: isRecurringStopped ? '#fff' : 'var(--priority-urgent)',
+                      borderColor: isRecurringStopped ? 'var(--primary)' : 'rgba(239, 68, 68, 0.3)'
+                    }}
+                    onClick={() => setIsRecurringStopped(!isRecurringStopped)}
+                    title={isRecurringStopped ? "Resume recurring schedule" : "Stop repeating this task"}
+                  >
+                    {isRecurringStopped ? <PlayCircle size={13} /> : <PauseCircle size={13} />}
+                    <span>{isRecurringStopped ? 'Resume Recurrence' : 'Stop Recurrence'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Section: Assigned To with Master Selector */}
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>

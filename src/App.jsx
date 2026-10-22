@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { CheckSquare, Repeat } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { TaskProvider } from './context/TaskContext';
+import { TaskProvider, useTasks } from './context/TaskContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationToast } from './components/common/NotificationToast';
 import { Navbar } from './components/common/Navbar';
@@ -10,6 +11,7 @@ import { TaskFilters } from './components/tasks/TaskFilters';
 import { TaskListView } from './components/tasks/TaskListView';
 import { TaskTableView } from './components/tasks/TaskTableView';
 import { CalendarView } from './components/calendar/CalendarView';
+import { RecurringTasksView } from './components/tasks/RecurringTasksView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { AssigneeMasterModal } from './components/assignees/AssigneeMasterModal';
 import { AuthModal } from './components/auth/AuthModal';
@@ -18,6 +20,7 @@ import { AuthPage } from './components/auth/AuthPage';
 function MainLayout() {
   const { currentUser, loading } = useAuth();
   const { theme, toggleTheme, defaultView } = useTheme();
+  const { taskTypeTab, setTaskTypeTab, normalTasks, recurringTasks } = useTasks();
 
   const [currentView, setCurrentView] = useState(() => {
     const userKey = currentUser?.uid ? `zenith_default_view_${currentUser.uid}` : 'zenith_default_view';
@@ -95,27 +98,57 @@ function MainLayout() {
         {/* Dynamic Minimalist Stats Header */}
         <StatsOverview />
 
-        {/* View Switcher: List vs Table vs Calendar */}
-        {currentView === 'list' ? (
-          <>
-            <TaskFilters />
-            <TaskListView 
+        {/* Task Segmentation Tabs: Normal vs Recurring */}
+        <div className="task-type-tabs">
+          <button 
+            type="button"
+            className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
+            onClick={() => setTaskTypeTab('normal')}
+          >
+            <CheckSquare size={15} />
+            <span>Normal Tasks</span>
+            <span className="task-type-badge">{normalTasks.length}</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
+            onClick={() => setTaskTypeTab('recurring')}
+          >
+            <Repeat size={15} />
+            <span>Recurring Tasks</span>
+            <span className="task-type-badge">{recurringTasks.length}</span>
+          </button>
+        </div>
+
+        {/* Views: Normal (List/Table/Calendar) vs Recurring */}
+        {taskTypeTab === 'normal' ? (
+          currentView === 'list' ? (
+            <>
+              <TaskFilters />
+              <TaskListView 
+                onEditTask={handleEditTask} 
+                onOpenNewTask={() => handleOpenNewTask()} 
+              />
+            </>
+          ) : currentView === 'table' ? (
+            <>
+              <TaskFilters />
+              <TaskTableView 
+                onEditTask={handleEditTask} 
+                onOpenNewTask={() => handleOpenNewTask()} 
+              />
+            </>
+          ) : (
+            <CalendarView 
+              onOpenNewTask={handleOpenNewTask} 
               onEditTask={handleEditTask} 
-              onOpenNewTask={() => handleOpenNewTask()} 
             />
-          </>
-        ) : currentView === 'table' ? (
-          <>
-            <TaskFilters />
-            <TaskTableView 
-              onEditTask={handleEditTask} 
-              onOpenNewTask={() => handleOpenNewTask()} 
-            />
-          </>
+          )
         ) : (
-          <CalendarView 
-            onOpenNewTask={handleOpenNewTask} 
-            onEditTask={handleEditTask} 
+          <RecurringTasksView 
+            onEditTask={handleEditTask}
+            onOpenNewTask={() => handleOpenNewTask()}
           />
         )}
       </main>

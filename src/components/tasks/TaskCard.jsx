@@ -18,13 +18,15 @@ import {
   CheckCircle2,
   ListChecks,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  PauseCircle,
+  PlayCircle
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
-  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask, toggleTaskStep } = useTasks();
+  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask, toggleTaskStep, toggleStopRecurrence } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isStepsExpanded, setIsStepsExpanded] = useState(true);
 
@@ -112,7 +114,18 @@ export const TaskCard = ({ task, onEdit }) => {
           <h3 className="task-title">{task.title}</h3>
           
           {/* Actions */}
-          <div className="task-actions">
+          <div className="task-actions" style={{ gap: '6px' }}>
+            {task.recurrence && task.recurrence !== 'none' && (
+              <button
+                type="button"
+                className={`btn-stop-recurrence ${task.isRecurringStopped ? 'resume' : 'stop'}`}
+                onClick={() => toggleStopRecurrence(task.id)}
+                title={task.isRecurringStopped ? "Resume recurring schedule" : "Stop recurrence for this task"}
+              >
+                {task.isRecurringStopped ? <PlayCircle size={12} /> : <PauseCircle size={12} />}
+                <span>{task.isRecurringStopped ? 'Resume' : 'Stop'}</span>
+              </button>
+            )}
             <button 
               className="btn-icon" 
               style={{ width: '28px', height: '28px' }} 
@@ -277,6 +290,13 @@ export const TaskCard = ({ task, onEdit }) => {
             <span className="badge badge-recurrence" title={`Recurring: repeats ${task.recurrence}`}>
               <Repeat size={11} />
               <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+            </span>
+          )}
+
+          {/* Stopped Recurrence Badge */}
+          {task.isRecurringStopped && (
+            <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.6875rem' }}>
+              ⏸ Stopped
             </span>
           )}
 
