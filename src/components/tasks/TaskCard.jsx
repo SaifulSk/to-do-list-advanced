@@ -26,12 +26,29 @@ import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 export const TaskCard = ({ task, onEdit }) => {
-  const { toggleTaskComplete, deleteTask, toggleTaskInProgress, updateTask, toggleTaskStep, toggleStopRecurrence } = useTasks();
+  const { 
+    toggleTaskComplete, 
+    deleteTask, 
+    toggleTaskInProgress, 
+    updateTask, 
+    toggleTaskStep, 
+    toggleStopRecurrence,
+    toggleRecurringDateComplete,
+    recurringDate 
+  } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isStepsExpanded, setIsStepsExpanded] = useState(true);
 
-  const isCompleted = task.status === 'completed';
-  const isInProgress = task.status === 'in_progress';
+  const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
+  const isCompleted = isRecurring
+    ? (Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate))
+    : task.status === 'completed';
+  const recurringDoneSteps = isRecurring && Array.isArray(task.completedStepsByDate?.[recurringDate])
+    ? task.completedStepsByDate[recurringDate].length
+    : 0;
+  const isInProgress = isRecurring
+    ? (!isCompleted && recurringDoneSteps > 0)
+    : task.status === 'in_progress';
 
   // Instant Priority Cycler: Low -> Medium -> High -> Urgent -> Low
   const handleCyclePriority = (e) => {
@@ -102,7 +119,13 @@ export const TaskCard = ({ task, onEdit }) => {
       {/* Checkbox */}
       <div 
         className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
-        onClick={() => toggleTaskComplete(task.id)}
+        onClick={() => {
+          if (isRecurring) {
+            toggleRecurringDateComplete(task.id, recurringDate);
+          } else {
+            toggleTaskComplete(task.id);
+          }
+        }}
         title={isCompleted ? "Mark as Incomplete" : "Mark as Completed"}
       >
         {isCompleted && <Check size={14} />}
@@ -152,7 +175,9 @@ export const TaskCard = ({ task, onEdit }) => {
 
         {/* Multi-Step Checklist */}
         {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
-          const completedCount = task.steps.filter((s) => s.completed).length;
+          const completedCount = isRecurring
+            ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
+            : task.steps.filter((s) => s.completed).length;
           const totalCount = task.steps.length;
           const percentage = Math.round((completedCount / totalCount) * 100);
 
@@ -196,26 +221,36 @@ export const TaskCard = ({ task, onEdit }) => {
               {/* Step Checklist Rows */}
               {isStepsExpanded && (
                 <div className="card-steps-list">
-                  {task.steps.map((step, idx) => (
-                    <div 
-                      key={step.id || idx} 
-                      className={`card-step-row ${step.completed ? 'completed' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTaskStep(task.id, step.id);
-                      }}
-                    >
+                  {task.steps.map((step, idx) => {
+                    const isStepDone = isRecurring
+                      ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                      : Boolean(step.completed);
+
+                    return (
                       <div 
-                        className={`custom-checkbox card-step-checkbox ${step.completed ? 'checked' : ''}`}
-                        title={step.completed ? "Mark step incomplete" : "Mark step complete"}
+                        key={step.id || idx} 
+                        className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isRecurring) {
+                            toggleTaskStep(task.id, step.id, recurringDate);
+                          } else {
+                            toggleTaskStep(task.id, step.id);
+                          }
+                        }}
                       >
-                        {step.completed && <Check size={10} />}
+                        <div 
+                          className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                          title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                        >
+                          {isStepDone && <Check size={10} />}
+                        </div>
+                        <span className="card-step-text">
+                          {step.title}
+                        </span>
                       </div>
-                      <span className="card-step-text">
-                        {step.title}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

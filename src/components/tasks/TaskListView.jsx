@@ -7,6 +7,7 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
   const { 
     filteredTasks, 
     tasks, 
+    taskTypeTab,
     searchQuery, 
     filterPriority, 
     filterStatus, 
@@ -39,27 +40,53 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
     );
   }
 
-  if (filteredTasks.length === 0 && isFiltering) {
+  if (filteredTasks.length === 0) {
+    if (isFiltering) {
+      return (
+        <div className="empty-state glass-panel">
+          <div className="empty-state-icon">
+            <AlertCircle size={32} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No matching tasks</h3>
+            <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Try adjusting your search query, priority, or filters.</p>
+          </div>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => {
+              setSearchQuery('');
+              setFilterPriority('all');
+              setFilterStatus('all');
+              setFilterNeedHelp(false);
+            }}
+          >
+            <span>Reset All Filters</span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="empty-state glass-panel">
         <div className="empty-state-icon">
-          <AlertCircle size={32} />
+          <CheckSquare size={32} />
         </div>
         <div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No matching tasks</h3>
-          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Try adjusting your search query, priority, or filters.</p>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            {taskTypeTab === 'recurring' ? 'No recurring tasks scheduled for this date' : 'No tasks found'}
+          </h3>
+          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>
+            {taskTypeTab === 'recurring'
+              ? 'Use the arrows above to navigate dates or create a recurring task.'
+              : 'Get started by creating your first task.'}
+          </p>
         </div>
-        <button 
-          className="btn btn-secondary" 
-          onClick={() => {
-            setSearchQuery('');
-            setFilterPriority('all');
-            setFilterStatus('all');
-            setFilterNeedHelp(false);
-          }}
-        >
-          <span>Reset All Filters</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+          <button className="btn btn-primary" onClick={onOpenNewTask}>
+            <Plus size={16} />
+            <span>Create Task</span>
+          </button>
+        </div>
       </div>
     );
   }

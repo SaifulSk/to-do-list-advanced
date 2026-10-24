@@ -8,6 +8,7 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
   const formattedDate = format(selectedDate, 'EEEE, MMMM d, yyyy');
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
+  const recurringTasks = tasksForDay.filter((item) => item.type === 'recurring');
   const createdTasks = tasksForDay.filter((item) => item.type === 'created');
   const dueTasks = tasksForDay.filter((item) => item.type === 'due');
 
@@ -42,6 +43,76 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
               <span>Add Task on this Date</span>
             </button>
           </div>
+
+          {/* Recurring Tasks For This Day */}
+          {recurringTasks.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div className="legend-dot" style={{ background: '#6366f1' }} />
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#6366f1' }}>
+                  Recurring Tasks on this day ({recurringTasks.length})
+                </h4>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {recurringTasks.map(({ task }) => {
+                  const isDoneOnDate = Boolean(task.completedDates?.includes(dateStr));
+                  const completedSteps = task.completedStepsByDate?.[dateStr]?.length || 0;
+
+                  return (
+                    <div 
+                      key={`rec-${task.id}`}
+                      className={`task-card priority-${task.priority} ${isDoneOnDate ? 'completed' : ''}`}
+                      style={{ padding: '10px 14px', cursor: 'pointer' }}
+                      onClick={() => {
+                        onClose();
+                        onEditTask(task);
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>{task.title}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
+                              <Repeat size={10} />
+                              <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+                            </span>
+                            {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
+                              <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
+                                <Banknote size={10} />
+                                <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
+                              </span>
+                            )}
+                            {isDoneOnDate && (
+                              <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
+                                <CheckCircle2 size={10} />
+                                <span>Done</span>
+                              </span>
+                            )}
+                            {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (
+                              <span className="badge" style={{ fontSize: '0.6875rem', gap: '3px', background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                                <ListChecks size={10} />
+                                <span>{completedSteps}/{task.steps.length}</span>
+                              </span>
+                            )}
+                            <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                          {task.assignedTo && <span>Assignee: <strong>{task.assignedTo.name}</strong></span>}
+                          {task.needHelpFrom && (
+                            <span style={{ color: 'var(--help-accent)' }}>
+                              🤝 Needs help from {task.needHelpFrom.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Due On This Day */}
           <div>

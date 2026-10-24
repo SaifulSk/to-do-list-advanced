@@ -834,6 +834,19 @@
   border-left: 3px solid #fb923c;
 }
 
+.calendar-event-pill.recurring {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 3px solid #6366f1;
+}
+[data-theme="dark"] .calendar-event-pill.recurring {
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  border-left: 3px solid #818cf8;
+}
+
 .calendar-event-pill.completed {
   opacity: 0.55;
   text-decoration: line-through;

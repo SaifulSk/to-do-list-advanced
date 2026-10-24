@@ -11,6 +11,7 @@ import { TaskFilters } from './components/tasks/TaskFilters';
 import { TaskListView } from './components/tasks/TaskListView';
 import { TaskTableView } from './components/tasks/TaskTableView';
 import { CalendarView } from './components/calendar/CalendarView';
+import { RecurringDatePicker } from './components/tasks/RecurringDatePicker';
 import { RecurringTasksView } from './components/tasks/RecurringTasksView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { AssigneeMasterModal } from './components/assignees/AssigneeMasterModal';
@@ -121,34 +122,29 @@ function MainLayout() {
           </button>
         </div>
 
-        {/* Views: Normal (List/Table/Calendar) vs Recurring */}
-        {taskTypeTab === 'normal' ? (
-          currentView === 'list' ? (
-            <>
-              <TaskFilters />
-              <TaskListView 
-                onEditTask={handleEditTask} 
-                onOpenNewTask={() => handleOpenNewTask()} 
-              />
-            </>
-          ) : currentView === 'table' ? (
-            <>
-              <TaskFilters />
-              <TaskTableView 
-                onEditTask={handleEditTask} 
-                onOpenNewTask={() => handleOpenNewTask()} 
-              />
-            </>
-          ) : (
-            <CalendarView 
-              onOpenNewTask={handleOpenNewTask} 
+        {/* Views: List, Table, or Calendar */}
+        {currentView === 'list' ? (
+          <>
+            {taskTypeTab === 'recurring' && <RecurringDatePicker />}
+            <TaskFilters />
+            <TaskListView 
               onEditTask={handleEditTask} 
+              onOpenNewTask={() => handleOpenNewTask()} 
             />
-          )
+          </>
+        ) : currentView === 'table' ? (
+          <>
+            {taskTypeTab === 'recurring' && <RecurringDatePicker />}
+            <TaskFilters />
+            <TaskTableView 
+              onEditTask={handleEditTask} 
+              onOpenNewTask={() => handleOpenNewTask()} 
+            />
+          </>
         ) : (
-          <RecurringTasksView 
-            onEditTask={handleEditTask}
-            onOpenNewTask={() => handleOpenNewTask()}
+          <CalendarView 
+            onOpenNewTask={handleOpenNewTask} 
+            onEditTask={handleEditTask} 
           />
         )}
       </main>

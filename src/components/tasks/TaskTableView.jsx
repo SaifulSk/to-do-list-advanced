@@ -28,7 +28,10 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
   const { 
     filteredTasks, 
     tasks, 
+    taskTypeTab,
     toggleTaskComplete, 
+    toggleRecurringDateComplete,
+    recurringDate,
     toggleTaskInProgress, 
     toggleTaskStep,
     toggleStopRecurrence,
@@ -101,27 +104,53 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
     );
   }
 
-  if (filteredTasks.length === 0 && isFiltering) {
+  if (filteredTasks.length === 0) {
+    if (isFiltering) {
+      return (
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <AlertCircle size={32} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No matching tasks</h3>
+            <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Try adjusting your search query, priority, or filters.</p>
+          </div>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => {
+              setSearchQuery('');
+              setFilterPriority('all');
+              setFilterStatus('all');
+              setFilterNeedHelp(false);
+            }}
+          >
+            <span>Reset All Filters</span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="empty-state">
         <div className="empty-state-icon">
-          <AlertCircle size={32} />
+          <Check size={32} />
         </div>
         <div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No matching tasks</h3>
-          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Try adjusting your search query, priority, or filters.</p>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            {taskTypeTab === 'recurring' ? 'No recurring tasks scheduled for this date' : 'No tasks found'}
+          </h3>
+          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>
+            {taskTypeTab === 'recurring'
+              ? 'Use the arrows above to navigate dates or create a recurring task.'
+              : 'Get started by creating your first task.'}
+          </p>
         </div>
-        <button 
-          className="btn btn-secondary" 
-          onClick={() => {
-            setSearchQuery('');
-            setFilterPriority('all');
-            setFilterStatus('all');
-            setFilterNeedHelp(false);
-          }}
-        >
-          <span>Reset All Filters</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+          <button className="btn btn-primary" onClick={onOpenNewTask}>
+            <Plus size={16} />
+            <span>Create Task</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -145,8 +174,16 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
         </thead>
         <tbody>
           {filteredTasks.map((task) => {
-            const isCompleted = task.status === 'completed';
-            const isInProgress = task.status === 'in_progress';
+            const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
+            const recurringDoneSteps = isRecurring && task.hasSteps && Array.isArray(task.steps)
+              ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
+              : 0;
+            const isCompleted = isRecurring
+              ? Boolean(task.completedDates?.includes(recurringDate))
+              : task.status === 'completed';
+            const isInProgress = isRecurring
+              ? (!isCompleted && recurringDoneSteps > 0)
+              : task.status === 'in_progress';
             const dueInfo = getDueDateDisplay(task.dueDate, isCompleted);
 
             return (
@@ -155,7 +192,13 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                 <td style={{ textAlign: 'center' }}>
                   <div 
                     className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
-                    onClick={() => toggleTaskComplete(task.id)}
+                    onClick={() => {
+                      if (isRecurring) {
+                        toggleRecurringDateComplete(task.id, recurringDate);
+                      } else {
+                        toggleTaskComplete(task.id);
+                      }
+                    }}
                     title={isCompleted ? "Mark as Incomplete" : "Mark as Completed"}
                     style={{ margin: '0 auto' }}
                   >
@@ -174,7 +217,9 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
 
                   {/* Multi-Step Checklist for Table View */}
                   {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
-                    const completedStepsCount = task.steps.filter((s) => s.completed).length;
+                    const completedStepsCount = isRecurring
+                      ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
+                      : task.steps.filter((s) => s.completed).length;
                     const totalStepsCount = task.steps.length;
                     const isExpanded = !!expandedTasks[task.id];
                     const percentage = Math.round((completedStepsCount / totalStepsCount) * 100);
@@ -197,24 +242,34 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
 
                         {isExpanded && (
                           <div className="table-steps-dropdown">
-                            {task.steps.map((step, idx) => (
-                              <div
-                                key={step.id || idx}
-                                className={`table-step-row ${step.completed ? 'completed' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleTaskStep(task.id, step.id);
-                                }}
-                              >
+                            {task.steps.map((step, idx) => {
+                              const isStepDone = isRecurring
+                                ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                                : Boolean(step.completed);
+
+                              return (
                                 <div
-                                  className={`custom-checkbox table-step-checkbox ${step.completed ? 'checked' : ''}`}
-                                  title={step.completed ? "Mark step incomplete" : "Mark step complete"}
+                                  key={step.id || idx}
+                                  className={`table-step-row ${isStepDone ? 'completed' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isRecurring) {
+                                      toggleTaskStep(task.id, step.id, recurringDate);
+                                    } else {
+                                      toggleTaskStep(task.id, step.id);
+                                    }
+                                  }}
                                 >
-                                  {step.completed && <Check size={9} />}
+                                  <div
+                                    className={`custom-checkbox table-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                                    title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                  >
+                                    {isStepDone && <Check size={9} />}
+                                  </div>
+                                  <span className="table-step-text">{step.title}</span>
                                 </div>
-                                <span className="table-step-text">{step.title}</span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
