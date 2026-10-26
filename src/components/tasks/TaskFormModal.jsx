@@ -228,20 +228,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
     });
   };
 
-  const liveRecurrenceSummary = useMemo(() => {
-    return getRecurrenceLabel({
-      recurrence,
-      recurrenceInterval,
-      recurrenceUnit,
-      recurrenceDaysOfWeek,
-      recurrenceMonthlyType,
-      recurrenceNth,
-      recurrenceWeekday,
-      recurringDayOfMonth,
-      recurringDayOfWeek,
-      recurringMonth
-    });
-  }, [
+  const liveRecurrenceSummary = getRecurrenceLabel({
     recurrence,
     recurrenceInterval,
     recurrenceUnit,
@@ -252,7 +239,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
     recurringDayOfMonth,
     recurringDayOfWeek,
     recurringMonth
-  ]);
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
