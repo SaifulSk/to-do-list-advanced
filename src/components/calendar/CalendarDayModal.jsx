@@ -85,7 +85,11 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                               </span>
                             )}
                             {isDoneOnDate && (
-                              <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
+                              <span 
+                                className="badge badge-completed" 
+                                style={{ fontSize: '0.6875rem' }}
+                                title={`Completed on ${task.completedAtByDate?.[dateStr] || dateStr}`}
+                              >
                                 <CheckCircle2 size={10} />
                                 <span>Done</span>
                               </span>

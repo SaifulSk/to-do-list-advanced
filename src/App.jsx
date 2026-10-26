@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
 import { Navbar } from './components/common/Navbar';
-import { StatsOverview } from './components/common/StatsOverview';
 import { TaskFilters } from './components/tasks/TaskFilters';
 import { TaskListView } from './components/tasks/TaskListView';
 import { TaskTableView } from './components/tasks/TaskTableView';
@@ -94,9 +93,6 @@ function MainLayout() {
 
       {/* Main Workspace Area */}
       <main className="main-content">
-        {/* Dynamic Minimalist Stats Header */}
-        <StatsOverview />
-
         {/* Task Segmentation Tabs: Normal vs Recurring */}
         <div className="task-type-tabs">
           <button 

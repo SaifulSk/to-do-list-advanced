@@ -103,7 +103,10 @@ export const TaskCard = ({ task, onEdit }) => {
 
   const dueInfo = getDueDateDisplay(task.dueDate);
   const createdDate = getCreatedDateDisplay(task.createdAt);
-  const completedDate = getCompletedDateDisplay(task.completedAt);
+  const completedDateString = isRecurring
+    ? (isCompleted ? (task.completedAtByDate?.[recurringDate] || recurringDate) : null)
+    : (isCompleted ? task.completedAt : null);
+  const completedDate = getCompletedDateDisplay(completedDateString);
 
   const getPriorityIcon = (priority) => {
     switch (priority) {
@@ -307,7 +310,7 @@ export const TaskCard = ({ task, onEdit }) => {
 
           {/* Completed Date Badge */}
           {completedDate && (
-            <span className="badge badge-completed" title={`Completed on ${task.completedAt}`}>
+            <span className="badge badge-completed" title={`Completed on ${completedDateString}`}>
               <CheckCircle2 size={12} />
               <span>Done {completedDate}</span>
             </span>

@@ -724,15 +724,20 @@ export const TaskProvider = ({ children }) => {
 
       completedStepsByDate[targetDate] = updatedStepsForDate;
 
-      // Synchronize completedDates for targetDate
+      // Synchronize completedDates and completedAtByDate for targetDate
       const completedDates = Array.isArray(task.completedDates) ? [...task.completedDates] : [];
       let updatedCompletedDates = completedDates;
+      const completedAtByDate = { ...(task.completedAtByDate || {}) };
       const totalSteps = task.steps.length;
 
       if (updatedStepsForDate.length === totalSteps && totalSteps > 0) {
         // All steps done on targetDate -> mark completed on targetDate!
         if (!completedDates.includes(targetDate)) {
           updatedCompletedDates = [...completedDates, targetDate];
+          const todayStr = format(new Date(), 'yyyy-MM-dd');
+          completedAtByDate[targetDate] = targetDate === todayStr 
+            ? format(new Date(), 'yyyy-MM-dd HH:mm') 
+            : `${targetDate} 12:00`;
           try {
             confetti({
               particleCount: 50,
@@ -745,11 +750,13 @@ export const TaskProvider = ({ children }) => {
       } else {
         // Not all steps done -> remove targetDate from completedDates
         updatedCompletedDates = completedDates.filter((d) => d !== targetDate);
+        delete completedAtByDate[targetDate];
       }
 
       await updateTask(taskId, {
         completedStepsByDate,
-        completedDates: updatedCompletedDates
+        completedDates: updatedCompletedDates,
+        completedAtByDate
       });
       return;
     }
@@ -809,15 +816,21 @@ export const TaskProvider = ({ children }) => {
     const isCompletedForDate = completedDates.includes(targetDate);
     let updatedCompletedDates;
     const completedStepsByDate = { ...(task.completedStepsByDate || {}) };
+    const completedAtByDate = { ...(task.completedAtByDate || {}) };
 
     if (isCompletedForDate) {
       updatedCompletedDates = completedDates.filter((d) => d !== targetDate);
       completedStepsByDate[targetDate] = [];
+      delete completedAtByDate[targetDate];
     } else {
       updatedCompletedDates = [...completedDates, targetDate];
       if (Array.isArray(task.steps) && task.steps.length > 0) {
         completedStepsByDate[targetDate] = task.steps.map((s) => s.id);
       }
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      completedAtByDate[targetDate] = targetDate === todayStr 
+        ? format(new Date(), 'yyyy-MM-dd HH:mm') 
+        : `${targetDate} 12:00`;
       try {
         confetti({
           particleCount: 50,
@@ -831,7 +844,7 @@ export const TaskProvider = ({ children }) => {
     await updateTask(taskId, {
       completedDates: updatedCompletedDates,
       completedStepsByDate,
-      completedAt: !isCompletedForDate ? format(new Date(), 'yyyy-MM-dd HH:mm') : task.completedAt
+      completedAtByDate
     });
   };
 

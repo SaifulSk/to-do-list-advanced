@@ -376,7 +376,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {/* Completed Date Banner if already completed */}
-            {initialTask?.completedAt && (
+            {(!initialTask?.recurrence || initialTask?.recurrence === 'none') && initialTask?.completedAt && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', background: 'var(--primary-light)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary-border)', marginBottom: '8px' }}>
                 <CheckCircle2 size={14} />
                 <span>Task Completed on: {initialTask.completedAt}</span>

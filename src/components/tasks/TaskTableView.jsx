@@ -330,16 +330,28 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                     )}
 
-                    {task.completedAt && (
-                      <span 
-                        className="badge badge-completed" 
-                        title={`Completed on ${task.completedAt}`}
-                        style={{ fontSize: '0.6875rem', padding: '2px 6px' }}
-                      >
-                        <CheckCircle2 size={10} />
-                        <span>Done {format(parseISO(task.completedAt), 'MMM d')}</span>
-                      </span>
-                    )}
+                    {(() => {
+                      const doneDateStr = isRecurring
+                        ? (isCompleted ? (task.completedAtByDate?.[recurringDate] || recurringDate) : null)
+                        : (isCompleted ? task.completedAt : null);
+                      if (!doneDateStr) return null;
+                      let formattedDone = doneDateStr;
+                      try {
+                        const parsed = parseISO(doneDateStr);
+                        if (!isNaN(parsed.getTime())) formattedDone = format(parsed, 'MMM d');
+                      } catch (e) {}
+
+                      return (
+                        <span 
+                          className="badge badge-completed" 
+                          title={`Completed on ${doneDateStr}`}
+                          style={{ fontSize: '0.6875rem', padding: '2px 6px' }}
+                        >
+                          <CheckCircle2 size={10} />
+                          <span>Done {formattedDone}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
                 </td>
 
