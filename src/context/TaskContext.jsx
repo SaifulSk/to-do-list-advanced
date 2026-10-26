@@ -1,6 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { format, addDays, addWeeks, addMonths, addYears, parseISO, isValid, getDate, getMonth } from 'date-fns';
+import { 
+  format, 
+  addDays, 
+  addWeeks, 
+  addMonths, 
+  addYears, 
+  parseISO, 
+  isValid, 
+  getDate, 
+  getMonth,
+  getDay,
+  differenceInCalendarDays,
+  differenceInCalendarWeeks,
+  differenceInCalendarMonths
+} from 'date-fns';
 import { useAuth } from './AuthContext';
 import { 
   isConfigured as isFirebaseLive, 
@@ -13,7 +27,6 @@ import {
   addAssigneeToFirestore,
   deleteAssigneeFromFirestore
 } from '../services/firebase';
-import { notifyTaskCompleted } from '../services/notificationService';
 
 const TaskContext = createContext(null);
 
@@ -25,18 +38,148 @@ export const useTasks = () => {
   return context;
 };
 
+// Check if date is the N-th or Last weekday of its month
+export function isNthWeekdayOfMonth(date, nth, targetWeekdayName) {
+  const dayOfWeek = getDay(date); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const dayOfMonth = getDate(date);
+  const weekdayMap = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+
+  const targetDayNum = weekdayMap[(targetWeekdayName || '').toLowerCase()];
+
+  // If matching a specific day of week (e.g. 'friday')
+  if (targetDayNum !== undefined) {
+    if (dayOfWeek !== targetDayNum) return false;
+
+    if (nth === 'last') {
+      const nextWeekDate = addDays(date, 7);
+      return nextWeekDate.getMonth() !== date.getMonth();
+    } else if (nth === '1st') {
+      return dayOfMonth >= 1 && dayOfMonth <= 7;
+    } else if (nth === '2nd') {
+      return dayOfMonth >= 8 && dayOfMonth <= 14;
+    } else if (nth === '3rd') {
+      return dayOfMonth >= 15 && dayOfMonth <= 21;
+    } else if (nth === '4th') {
+      return dayOfMonth >= 22 && dayOfMonth <= 28;
+    }
+  } else if (targetWeekdayName === 'weekday') {
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+    if (!isWeekday) return false;
+    if (nth === 'last') {
+      let cursor = addDays(date, 1);
+      while (cursor.getMonth() === date.getMonth()) {
+        const cDay = getDay(cursor);
+        if (cDay >= 1 && cDay <= 5) return false;
+        cursor = addDays(cursor, 1);
+      }
+      return true;
+    } else if (nth === '1st') {
+      let cursor = new Date(date.getFullYear(), date.getMonth(), 1);
+      while (cursor.getMonth() === date.getMonth()) {
+        const cDay = getDay(cursor);
+        if (cDay >= 1 && cDay <= 5) {
+          return cursor.getDate() === dayOfMonth;
+        }
+        cursor = addDays(cursor, 1);
+      }
+    }
+  } else if (targetWeekdayName === 'day') {
+    if (nth === 'last') {
+      return addDays(date, 1).getMonth() !== date.getMonth();
+    } else if (nth === '1st') {
+      return dayOfMonth === 1;
+    }
+  }
+
+  return false;
+}
+
+// Generate human-friendly label for any recurring rule
+export function getRecurrenceLabel(task) {
+  if (!task || !task.recurrence || task.recurrence === 'none') return '';
+  const interval = Math.max(1, Number(task.recurrenceInterval) || 1);
+  const type = task.recurrence;
+
+  if (type === 'daily') {
+    return interval > 1 ? `Every ${interval} days` : 'Daily';
+  }
+
+  if (type === 'weekly') {
+    const days = Array.isArray(task.recurrenceDaysOfWeek) && task.recurrenceDaysOfWeek.length > 0
+      ? task.recurrenceDaysOfWeek
+      : (task.recurringDayOfWeek ? [task.recurringDayOfWeek] : []);
+    const daysLabel = days.map((d) => d.slice(0, 3).toUpperCase()).join(', ');
+    if (interval > 1) {
+      return `Every ${interval} wks${daysLabel ? ` (${daysLabel})` : ''}`;
+    }
+    return daysLabel ? `Weekly (${daysLabel})` : 'Weekly';
+  }
+
+  if (type === 'monthly') {
+    if (task.recurrenceMonthlyType === 'nth_weekday') {
+      const nth = task.recurrenceNth || 'last';
+      const day = task.recurrenceWeekday || 'friday';
+      const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
+      return interval > 1 ? `Every ${interval} mos (${nth} ${dayCap})` : `Monthly (${nth} ${dayCap})`;
+    }
+    const day = task.recurringDayOfMonth || 1;
+    return interval > 1 ? `Every ${interval} mos (Day ${day})` : `Monthly (Day ${day})`;
+  }
+
+  if (type === 'yearly') {
+    return interval > 1 ? `Every ${interval} yrs` : 'Yearly';
+  }
+
+  if (type === 'custom') {
+    const unit = task.recurrenceUnit || 'days';
+    if (unit === 'days') {
+      return `Every ${interval} days`;
+    }
+    if (unit === 'weeks') {
+      const days = Array.isArray(task.recurrenceDaysOfWeek) && task.recurrenceDaysOfWeek.length > 0
+        ? task.recurrenceDaysOfWeek
+        : (task.recurringDayOfWeek ? [task.recurringDayOfWeek] : []);
+      const daysLabel = days.map((d) => d.slice(0, 3).toUpperCase()).join(', ');
+      return `Every ${interval} wks${daysLabel ? ` (${daysLabel})` : ''}`;
+    }
+    if (unit === 'months') {
+      if (task.recurrenceMonthlyType === 'nth_weekday') {
+        const nth = task.recurrenceNth || 'last';
+        const day = task.recurrenceWeekday || 'friday';
+        const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
+        return interval > 1 ? `Every ${interval} mos (${nth} ${dayCap})` : `Every ${nth} ${dayCap} of month`;
+      }
+      const day = task.recurringDayOfMonth || 1;
+      return interval > 1 ? `Every ${interval} mos (Day ${day})` : `Monthly (Day ${day})`;
+    }
+    if (unit === 'years') {
+      return interval > 1 ? `Every ${interval} yrs` : 'Yearly';
+    }
+  }
+
+  return task.recurrence;
+}
+
 // Check if a recurring task is scheduled on a given date (yyyy-MM-dd)
 export function isTaskScheduledOnDate(task, dateStr) {
   if (!task || !task.recurrence || task.recurrence === 'none') return false;
 
   // 1. Creation date boundary: task appears on or after its creation date
-  if (task.createdAt && dateStr < task.createdAt) {
+  if (task.createdAt && dateStr < task.createdAt.split('T')[0]) {
     return false;
   }
 
   // 2. Stopped recurrence boundary: if stopped prior to dateStr, do not show
   if (task.isRecurringStopped) {
-    if (task.recurrenceStoppedAt && dateStr > task.recurrenceStoppedAt) {
+    if (task.recurrenceStoppedAt && dateStr > task.recurrenceStoppedAt.split('T')[0]) {
       return false;
     }
   }
@@ -44,48 +187,141 @@ export function isTaskScheduledOnDate(task, dateStr) {
   const targetDate = parseISO(dateStr);
   if (!isValid(targetDate)) return false;
 
-  switch (task.recurrence) {
-    case 'daily':
-      return true;
+  // Anchor date (defaults to recurrenceStartDate, dueDate, createdAt, or dateStr)
+  const anchorStr = task.recurrenceStartDate 
+    || (task.dueDate ? task.dueDate.split('T')[0] : null) 
+    || (task.createdAt ? task.createdAt.split('T')[0] : null) 
+    || dateStr;
+
+  if (dateStr < anchorStr) {
+    return false;
+  }
+
+  const anchor = parseISO(anchorStr);
+  const validAnchor = isValid(anchor) ? anchor : targetDate;
+  const interval = Math.max(1, Number(task.recurrenceInterval) || 1);
+  const recurrenceType = task.recurrence;
+
+  switch (recurrenceType) {
+    case 'daily': {
+      if (interval === 1) return true;
+      const diffDays = differenceInCalendarDays(targetDate, validAnchor);
+      return diffDays >= 0 && diffDays % interval === 0;
+    }
 
     case 'weekly': {
+      const selectedDays = Array.isArray(task.recurrenceDaysOfWeek) && task.recurrenceDaysOfWeek.length > 0
+        ? task.recurrenceDaysOfWeek.map((d) => d.toLowerCase())
+        : [ (task.recurringDayOfWeek || format(validAnchor, 'EEEE')).toLowerCase() ];
       const targetDayName = format(targetDate, 'EEEE').toLowerCase();
-      const taskDay = (task.recurringDayOfWeek || '').toLowerCase();
-      if (taskDay) {
-        return taskDay === targetDayName;
-      }
-      const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-      if (fallbackDate && isValid(fallbackDate)) {
-        return format(fallbackDate, 'EEEE').toLowerCase() === targetDayName;
-      }
-      return false;
+
+      if (!selectedDays.includes(targetDayName)) return false;
+      if (interval === 1) return true;
+
+      const diffWeeks = differenceInCalendarWeeks(targetDate, validAnchor, { weekStartsOn: 1 });
+      return diffWeeks >= 0 && diffWeeks % interval === 0;
     }
 
     case 'monthly': {
+      const diffMonths = differenceInCalendarMonths(targetDate, validAnchor);
+      if (diffMonths < 0) return false;
+      if (interval > 1 && diffMonths % interval !== 0) return false;
+
+      if (task.recurrenceMonthlyType === 'nth_weekday') {
+        const nth = task.recurrenceNth || 'last';
+        const weekday = task.recurrenceWeekday || 'friday';
+        return isNthWeekdayOfMonth(targetDate, nth, weekday);
+      }
+
       const targetDayOfMonth = getDate(targetDate);
       let taskDay = Number(task.recurringDayOfMonth);
       if (!taskDay || isNaN(taskDay)) {
-        const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-        if (fallbackDate && isValid(fallbackDate)) {
-          taskDay = getDate(fallbackDate);
-        }
+        taskDay = getDate(validAnchor);
       }
       return targetDayOfMonth === taskDay;
     }
 
     case 'yearly': {
+      const diffYears = targetDate.getFullYear() - validAnchor.getFullYear();
+      if (diffYears < 0) return false;
+      if (interval > 1 && diffYears % interval !== 0) return false;
+
       const targetMonth = getMonth(targetDate) + 1;
-      const targetDay = getDate(targetDate);
       let taskMonth = Number(task.recurringMonth);
-      let taskDay = Number(task.recurringDayOfMonth);
-      if (!taskMonth || !taskDay || isNaN(taskMonth) || isNaN(taskDay)) {
-        const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-        if (fallbackDate && isValid(fallbackDate)) {
-          taskMonth = getMonth(fallbackDate) + 1;
-          taskDay = getDate(fallbackDate);
-        }
+      if (!taskMonth || isNaN(taskMonth)) {
+        taskMonth = getMonth(validAnchor) + 1;
       }
-      return targetMonth === taskMonth && targetDay === taskDay;
+      if (targetMonth !== taskMonth) return false;
+
+      if (task.recurrenceMonthlyType === 'nth_weekday') {
+        const nth = task.recurrenceNth || 'last';
+        const weekday = task.recurrenceWeekday || 'friday';
+        return isNthWeekdayOfMonth(targetDate, nth, weekday);
+      }
+
+      const targetDay = getDate(targetDate);
+      let taskDay = Number(task.recurringDayOfMonth);
+      if (!taskDay || isNaN(taskDay)) {
+        taskDay = getDate(validAnchor);
+      }
+      return targetDay === taskDay;
+    }
+
+    case 'custom': {
+      const unit = task.recurrenceUnit || 'days';
+
+      if (unit === 'days') {
+        const diffDays = differenceInCalendarDays(targetDate, validAnchor);
+        return diffDays >= 0 && diffDays % interval === 0;
+      }
+
+      if (unit === 'weeks') {
+        const selectedDays = Array.isArray(task.recurrenceDaysOfWeek) && task.recurrenceDaysOfWeek.length > 0
+          ? task.recurrenceDaysOfWeek.map((d) => d.toLowerCase())
+          : [ (task.recurringDayOfWeek || format(validAnchor, 'EEEE')).toLowerCase() ];
+        const targetDayName = format(targetDate, 'EEEE').toLowerCase();
+
+        if (!selectedDays.includes(targetDayName)) return false;
+        if (interval === 1) return true;
+
+        const diffWeeks = differenceInCalendarWeeks(targetDate, validAnchor, { weekStartsOn: 1 });
+        return diffWeeks >= 0 && diffWeeks % interval === 0;
+      }
+
+      if (unit === 'months') {
+        const diffMonths = differenceInCalendarMonths(targetDate, validAnchor);
+        if (diffMonths < 0) return false;
+        if (interval > 1 && diffMonths % interval !== 0) return false;
+
+        if (task.recurrenceMonthlyType === 'nth_weekday') {
+          const nth = task.recurrenceNth || 'last';
+          const weekday = task.recurrenceWeekday || 'friday';
+          return isNthWeekdayOfMonth(targetDate, nth, weekday);
+        }
+
+        const targetDayOfMonth = getDate(targetDate);
+        let taskDay = Number(task.recurringDayOfMonth);
+        if (!taskDay || isNaN(taskDay)) {
+          taskDay = getDate(validAnchor);
+        }
+        return targetDayOfMonth === taskDay;
+      }
+
+      if (unit === 'years') {
+        const diffYears = targetDate.getFullYear() - validAnchor.getFullYear();
+        if (diffYears < 0) return false;
+        if (interval > 1 && diffYears % interval !== 0) return false;
+
+        const targetMonth = getMonth(targetDate) + 1;
+        let taskMonth = Number(task.recurringMonth) || (getMonth(validAnchor) + 1);
+        if (targetMonth !== taskMonth) return false;
+
+        const targetDay = getDate(targetDate);
+        let taskDay = Number(task.recurringDayOfMonth) || getDate(validAnchor);
+        return targetDay === taskDay;
+      }
+
+      return false;
     }
 
     default:
@@ -203,33 +439,6 @@ export const TaskProvider = ({ children }) => {
       currentUser.uid,
       (firestoreTasks) => {
         if (Array.isArray(firestoreTasks)) {
-          // Detect remote completions across devices (e.g. Desktop -> Mobile PWA)
-          if (!isInitialTasksSyncRef.current && prevTasksRef.current && prevTasksRef.current.length > 0) {
-            const prevMap = new Map(prevTasksRef.current.map((t) => [t.id, t]));
-            firestoreTasks.forEach((incomingTask) => {
-              const prevTask = prevMap.get(incomingTask.id);
-              if (prevTask && prevTask.status !== 'completed' && incomingTask.status === 'completed') {
-                notifyTaskCompleted(incomingTask);
-              }
-            });
-          } else if (isInitialTasksSyncRef.current) {
-            // On initial load or app resume: check if any task was completed recently (last 30 mins)
-            // that this device has not notified yet
-            firestoreTasks.forEach((incomingTask) => {
-              if (incomingTask.status === 'completed' && incomingTask.completedAt) {
-                try {
-                  const compTime = parseISO(incomingTask.completedAt.replace(' ', 'T')).getTime();
-                  const diffMin = (Date.now() - compTime) / (1000 * 60);
-                  if (diffMin >= 0 && diffMin <= 30) {
-                    notifyTaskCompleted(incomingTask);
-                  }
-                } catch (e) {
-                  // ignore
-                }
-              }
-            });
-          }
-
           prevTasksRef.current = firestoreTasks;
           isInitialTasksSyncRef.current = false;
           setTasks(firestoreTasks);
@@ -371,11 +580,6 @@ export const TaskProvider = ({ children }) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t)));
     if (prevTasksRef.current) {
       prevTasksRef.current = prevTasksRef.current.map((t) => (t.id === taskId ? { ...t, ...finalUpdates } : t));
-    }
-
-    // Trigger push notification on todo completion
-    if (isBecomingCompleted && existingTask) {
-      notifyTaskCompleted({ ...existingTask, ...finalUpdates });
     }
 
     if (isFirebaseConnected) {
@@ -828,6 +1032,7 @@ export const TaskProvider = ({ children }) => {
     toggleTaskStep,
     toggleRecurringDateComplete,
     toggleStopRecurrence,
+    getRecurrenceLabel,
     addAssignee,
     deleteAssignee
   };

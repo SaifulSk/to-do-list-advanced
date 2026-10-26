@@ -931,29 +931,6 @@
     width: 100%;
     gap: 8px;
   }
-  .notification-dropdown {
-    position: fixed !important;
-    top: 96px !important;
-    left: 12px !important;
-    right: 12px !important;
-    width: auto !important;
-    max-width: 440px !important;
-    margin: 0 auto !important;
-    max-height: calc(100vh - 110px) !important;
-    z-index: 10000 !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
-  }
-  .notification-toast-container {
-    top: 12px !important;
-    left: 12px !important;
-    right: 12px !important;
-    display: flex !important;
-    justify-content: center !important;
-  }
-  .notification-toast {
-    width: 100% !important;
-    max-width: 400px !important;
-  }
   .filters-desktop {
     display: none !important;
   }
@@ -2178,6 +2155,72 @@
 .btn-stop-recurrence.resume:hover {
   background: #10b981;
   color: #ffffff;
+}
+
+/* Custom Recurrence Options */
+.recurrence-presets-wrap {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.recurrence-preset-chip {
+  padding: 4px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.recurrence-preset-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+  border-color: var(--primary);
+}
+.recurrence-preset-chip.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.weekday-chips-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.weekday-chip {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.weekday-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+.weekday-chip.selected {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 6px var(--primary-glow);
+}
+.recurrence-summary-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  font-size: 0.8125rem;
+  color: var(--text-main);
 }
 
 

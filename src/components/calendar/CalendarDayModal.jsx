@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, Plus, Clock, Flame, AlertTriangle, ArrowDown, Users, Check, Repeat, Banknote, CheckCircle2, ListChecks } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { getRecurrenceLabel } from '../../context/TaskContext';
 
 export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, onAddTaskForDate, onEditTask }) => {
   if (!isOpen || !selectedDate) return null;
@@ -75,7 +76,7 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                             <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
                               <Repeat size={10} />
-                              <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+                              <span>{getRecurrenceLabel(task)}</span>
                             </span>
                             {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
                               <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
@@ -146,7 +147,7 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                           {task.recurrence && task.recurrence !== 'none' && (
                             <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
                               <Repeat size={10} />
-                              <span>{task.recurrence}</span>
+                              <span>{getRecurrenceLabel(task)}</span>
                             </span>
                           )}
                           {task.amount !== undefined && task.amount !== null && task.amount !== '' && (
@@ -219,7 +220,7 @@ export const CalendarDayModal = ({ isOpen, onClose, selectedDate, tasksForDay, o
                           {task.recurrence && task.recurrence !== 'none' && (
                             <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
                               <Repeat size={10} />
-                              <span>{task.recurrence}</span>
+                              <span>{getRecurrenceLabel(task)}</span>
                             </span>
                           )}
                           {task.amount !== undefined && task.amount !== null && task.amount !== '' && (

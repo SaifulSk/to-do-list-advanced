@@ -3,8 +3,6 @@ import { CheckSquare, Repeat } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
-import { NotificationProvider } from './context/NotificationContext';
-import { NotificationToast } from './components/common/NotificationToast';
 import { Navbar } from './components/common/Navbar';
 import { StatsOverview } from './components/common/StatsOverview';
 import { TaskFilters } from './components/tasks/TaskFilters';
@@ -172,8 +170,7 @@ function MainLayout() {
           setCurrentView(view);
         }}
       />
-      {/* Global In-App Notification Toast */}
-      <NotificationToast />
+      {/* Auth Modal */}
     </div>
   );
 }
@@ -183,9 +180,7 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <TaskProvider>
-          <NotificationProvider>
-            <MainLayout />
-          </NotificationProvider>
+          <MainLayout />
         </TaskProvider>
       </ThemeProvider>
     </AuthProvider>

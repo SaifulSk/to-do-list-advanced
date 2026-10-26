@@ -35,6 +35,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
     toggleTaskInProgress, 
     toggleTaskStep,
     toggleStopRecurrence,
+    getRecurrenceLabel,
     deleteTask, 
     updateTask,
     searchQuery,
@@ -348,7 +349,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
                       <span className="badge badge-recurrence">
                         <Repeat size={11} />
-                        <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+                        <span>{getRecurrenceLabel(task)}</span>
                       </span>
                       {task.isRecurringStopped && (
                         <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>

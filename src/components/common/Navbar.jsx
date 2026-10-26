@@ -12,7 +12,6 @@ import {
   Users 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { NotificationBell } from './NotificationBell';
 
 export const Navbar = ({ 
   currentView, 
@@ -75,9 +74,6 @@ export const Navbar = ({
 
         {/* Nav Actions */}
         <div className="nav-actions">
-          {/* Notification Center Bell */}
-          <NotificationBell />
-
           {/* Theme Toggle Button */}
           <button 
             className="btn-icon" 

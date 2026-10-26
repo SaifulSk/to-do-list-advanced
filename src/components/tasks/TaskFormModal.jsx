@@ -19,8 +19,8 @@ import {
   PauseCircle,
   PlayCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { useTasks } from '../../context/TaskContext';
+import { format, parseISO, isValid } from 'date-fns';
+import { useTasks, getRecurrenceLabel } from '../../context/TaskContext';
 
 export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpenAssigneeMaster }) => {
   const { addTask, updateTask, assignees } = useTasks();
@@ -32,6 +32,13 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
   
   // Recurrence & Amount fields
   const [recurrence, setRecurrence] = useState('none');
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceUnit, setRecurrenceUnit] = useState('days');
+  const [recurrenceDaysOfWeek, setRecurrenceDaysOfWeek] = useState(['monday']);
+  const [recurrenceMonthlyType, setRecurrenceMonthlyType] = useState('day_of_month');
+  const [recurrenceNth, setRecurrenceNth] = useState('last');
+  const [recurrenceWeekday, setRecurrenceWeekday] = useState('friday');
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState('');
   const [recurringDayOfWeek, setRecurringDayOfWeek] = useState('monday');
   const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1);
   const [recurringMonth, setRecurringMonth] = useState(1);
@@ -71,6 +78,22 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setPriority(initialTask.priority || 'medium');
         setDueDate(initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '');
         setRecurrence(initialTask.recurrence || 'none');
+        setRecurrenceInterval(Number(initialTask.recurrenceInterval) || 1);
+        setRecurrenceUnit(initialTask.recurrenceUnit || 'days');
+        setRecurrenceDaysOfWeek(
+          Array.isArray(initialTask.recurrenceDaysOfWeek) && initialTask.recurrenceDaysOfWeek.length > 0
+            ? initialTask.recurrenceDaysOfWeek
+            : (initialTask.recurringDayOfWeek ? [initialTask.recurringDayOfWeek] : ['monday'])
+        );
+        setRecurrenceMonthlyType(initialTask.recurrenceMonthlyType || 'day_of_month');
+        setRecurrenceNth(initialTask.recurrenceNth || 'last');
+        setRecurrenceWeekday(initialTask.recurrenceWeekday || 'friday');
+        setRecurrenceStartDate(
+          initialTask.recurrenceStartDate
+            || (initialTask.dueDate ? initialTask.dueDate.split('T')[0] : '')
+            || (initialTask.createdAt ? initialTask.createdAt.split('T')[0] : '')
+            || format(new Date(), 'yyyy-MM-dd')
+        );
         setRecurringDayOfWeek(initialTask.recurringDayOfWeek || (initialTask.dueDate ? format(new Date(initialTask.dueDate), 'EEEE').toLowerCase() : format(new Date(), 'EEEE').toLowerCase()));
         setRecurringDayOfMonth(initialTask.recurringDayOfMonth || (initialTask.dueDate ? new Date(initialTask.dueDate).getDate() : new Date().getDate()));
         setRecurringMonth(initialTask.recurringMonth || (initialTask.dueDate ? (new Date(initialTask.dueDate).getMonth() + 1) : (new Date().getMonth() + 1)));
@@ -101,11 +124,19 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       } else {
         // New task default state
         const now = new Date();
+        const todayStr = defaultDate || format(now, 'yyyy-MM-dd');
         setTitle('');
         setDescription('');
         setPriority('medium');
         setDueDate(defaultDate || '');
         setRecurrence('none');
+        setRecurrenceInterval(1);
+        setRecurrenceUnit('days');
+        setRecurrenceDaysOfWeek([format(now, 'EEEE').toLowerCase()]);
+        setRecurrenceMonthlyType('day_of_month');
+        setRecurrenceNth('last');
+        setRecurrenceWeekday('friday');
+        setRecurrenceStartDate(todayStr);
         setRecurringDayOfWeek(format(now, 'EEEE').toLowerCase());
         setRecurringDayOfMonth(now.getDate());
         setRecurringMonth(now.getMonth() + 1);
@@ -154,6 +185,75 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
     );
   };
 
+  const applyPreset = (preset) => {
+    setRecurrence('custom');
+    const today = dueDate || recurrenceStartDate || format(new Date(), 'yyyy-MM-dd');
+    setRecurrenceStartDate(today);
+
+    if (preset === '10_days') {
+      setRecurrenceUnit('days');
+      setRecurrenceInterval(10);
+    } else if (preset === '2_weeks') {
+      setRecurrenceUnit('weeks');
+      setRecurrenceInterval(2);
+      try {
+        const d = parseISO(today);
+        const day = isValid(d) ? format(d, 'EEEE').toLowerCase() : 'monday';
+        setRecurrenceDaysOfWeek([day]);
+      } catch {
+        setRecurrenceDaysOfWeek(['monday']);
+      }
+    } else if (preset === 'last_friday') {
+      setRecurrenceUnit('months');
+      setRecurrenceInterval(1);
+      setRecurrenceMonthlyType('nth_weekday');
+      setRecurrenceNth('last');
+      setRecurrenceWeekday('friday');
+    } else if (preset === '1st_monday') {
+      setRecurrenceUnit('months');
+      setRecurrenceInterval(1);
+      setRecurrenceMonthlyType('nth_weekday');
+      setRecurrenceNth('1st');
+      setRecurrenceWeekday('monday');
+    }
+  };
+
+  const toggleDayOfWeek = (day) => {
+    setRecurrenceDaysOfWeek((prev) => {
+      if (prev.includes(day)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((d) => d !== day);
+      }
+      return [...prev, day];
+    });
+  };
+
+  const liveRecurrenceSummary = useMemo(() => {
+    return getRecurrenceLabel({
+      recurrence,
+      recurrenceInterval,
+      recurrenceUnit,
+      recurrenceDaysOfWeek,
+      recurrenceMonthlyType,
+      recurrenceNth,
+      recurrenceWeekday,
+      recurringDayOfMonth,
+      recurringDayOfWeek,
+      recurringMonth
+    });
+  }, [
+    recurrence,
+    recurrenceInterval,
+    recurrenceUnit,
+    recurrenceDaysOfWeek,
+    recurrenceMonthlyType,
+    recurrenceNth,
+    recurrenceWeekday,
+    recurringDayOfMonth,
+    recurringDayOfWeek,
+    recurringMonth
+  ]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -176,11 +276,6 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
 
     const finalHasSteps = Boolean(hasSteps && cleanedSteps.length > 0);
 
-    // Automatic status resolution:
-    // If multi-stepped task:
-    // - 0 steps done -> 'todo' (or initialTask status if not completed)
-    // - >= 1 step done but not all -> 'in_progress'
-    // - all steps done -> 'completed'
     let finalStatus = initialTask?.status || 'todo';
     let finalCompletedAt = initialTask?.completedAt || null;
 
@@ -211,14 +306,34 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       dueDate: dueDate ? dueDate : null, // Optional
       createdAt: initialTask?.createdAt || format(new Date(), 'yyyy-MM-dd'),
       recurrence: recurrence !== 'none' ? recurrence : null,
-      recurringDayOfWeek: recurrence === 'weekly' ? recurringDayOfWeek : null,
-      recurringDayOfMonth: (recurrence === 'monthly' || recurrence === 'yearly') ? Number(recurringDayOfMonth) : null,
+      recurrenceInterval: recurrence !== 'none' ? Math.max(1, Number(recurrenceInterval) || 1) : null,
+      recurrenceUnit: recurrence === 'custom' ? recurrenceUnit : null,
+      recurrenceDaysOfWeek: (recurrence === 'weekly' || (recurrence === 'custom' && recurrenceUnit === 'weeks'))
+        ? (recurrenceDaysOfWeek.length > 0 ? recurrenceDaysOfWeek : [recurringDayOfWeek])
+        : null,
+      recurrenceMonthlyType: (recurrence === 'monthly' || (recurrence === 'custom' && recurrenceUnit === 'months'))
+        ? recurrenceMonthlyType
+        : null,
+      recurrenceNth: ((recurrence === 'monthly' || (recurrence === 'custom' && recurrenceUnit === 'months')) && recurrenceMonthlyType === 'nth_weekday')
+        ? recurrenceNth
+        : null,
+      recurrenceWeekday: ((recurrence === 'monthly' || (recurrence === 'custom' && recurrenceUnit === 'months')) && recurrenceMonthlyType === 'nth_weekday')
+        ? recurrenceWeekday
+        : null,
+      recurrenceStartDate: recurrence !== 'none'
+        ? (recurrenceStartDate || dueDate || format(new Date(), 'yyyy-MM-dd'))
+        : null,
+      recurringDayOfWeek: recurrence === 'weekly' ? (recurrenceDaysOfWeek[0] || recurringDayOfWeek) : null,
+      recurringDayOfMonth: (recurrence === 'monthly' || recurrence === 'yearly' || (recurrence === 'custom' && recurrenceUnit === 'months'))
+        ? Number(recurringDayOfMonth)
+        : null,
       recurringMonth: recurrence === 'yearly' ? Number(recurringMonth) : null,
       isRecurringStopped: recurrence !== 'none' ? Boolean(isRecurringStopped) : false,
       recurrenceStoppedAt: (recurrence !== 'none' && isRecurringStopped)
         ? (initialTask?.recurrenceStoppedAt || format(new Date(), 'yyyy-MM-dd'))
         : null,
       completedDates: Array.isArray(initialTask?.completedDates) ? initialTask.completedDates : [],
+      completedStepsByDate: initialTask?.completedStepsByDate || {},
       amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
       currency: amount !== '' ? '₹' : null,
       assignedTo: assignedName.trim()
@@ -472,6 +587,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                   <option value="weekly">🔁 Weekly (Every week)</option>
                   <option value="monthly">🔁 Monthly (Every month)</option>
                   <option value="yearly">🔁 Yearly (Every year)</option>
+                  <option value="custom">⚡ Custom (Every 2 wks, 10 days, Last Friday...)</option>
                 </select>
               </div>
 
@@ -540,24 +656,82 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                 )}
 
                 {recurrence === 'monthly' && (
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
-                      Which day of the month should it repeat on?
-                    </label>
-                    <select
-                      className="select"
-                      value={recurringDayOfMonth}
-                      onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
-                    >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                        const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
-                        return (
-                          <option key={day} value={day}>
-                            {day}{suffix} of every month
-                          </option>
-                        );
-                      })}
-                    </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-main)' }}>
+                        <input
+                          type="radio"
+                          name="monthlyType"
+                          checked={recurrenceMonthlyType === 'day_of_month'}
+                          onChange={() => setRecurrenceMonthlyType('day_of_month')}
+                        />
+                        <span>Day of Month</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-main)' }}>
+                        <input
+                          type="radio"
+                          name="monthlyType"
+                          checked={recurrenceMonthlyType === 'nth_weekday'}
+                          onChange={() => setRecurrenceMonthlyType('nth_weekday')}
+                        />
+                        <span>Weekday Pattern (e.g. Last Friday)</span>
+                      </label>
+                    </div>
+
+                    {recurrenceMonthlyType === 'day_of_month' ? (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '6px', fontWeight: 600 }}>
+                          Which day of the month should it repeat on?
+                        </label>
+                        <select
+                          className="select"
+                          value={recurringDayOfMonth}
+                          onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                            const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                            return (
+                              <option key={day} value={day}>
+                                {day}{suffix} of every month
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>Position:</label>
+                          <select
+                            className="select"
+                            value={recurrenceNth}
+                            onChange={(e) => setRecurrenceNth(e.target.value)}
+                          >
+                            <option value="last">Last</option>
+                            <option value="1st">1st</option>
+                            <option value="2nd">2nd</option>
+                            <option value="3rd">3rd</option>
+                            <option value="4th">4th</option>
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>Weekday:</label>
+                          <select
+                            className="select"
+                            value={recurrenceWeekday}
+                            onChange={(e) => setRecurrenceWeekday(e.target.value)}
+                          >
+                            <option value="friday">Friday</option>
+                            <option value="monday">Monday</option>
+                            <option value="tuesday">Tuesday</option>
+                            <option value="wednesday">Wednesday</option>
+                            <option value="thursday">Thursday</option>
+                            <option value="saturday">Saturday</option>
+                            <option value="sunday">Sunday</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -596,6 +770,261 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                           );
                         })}
                       </select>
+                    </div>
+                  </div>
+                )}
+
+                {recurrence === 'custom' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Quick Presets */}
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                        Quick Presets:
+                      </div>
+                      <div className="recurrence-presets-wrap">
+                        <button
+                          type="button"
+                          className={`recurrence-preset-chip ${recurrenceUnit === 'days' && recurrenceInterval === 10 ? 'active' : ''}`}
+                          onClick={() => applyPreset('10_days')}
+                        >
+                          ⚡ Every 10 days
+                        </button>
+                        <button
+                          type="button"
+                          className={`recurrence-preset-chip ${recurrenceUnit === 'weeks' && recurrenceInterval === 2 ? 'active' : ''}`}
+                          onClick={() => applyPreset('2_weeks')}
+                        >
+                          ⚡ Every 2 weeks
+                        </button>
+                        <button
+                          type="button"
+                          className={`recurrence-preset-chip ${recurrenceMonthlyType === 'nth_weekday' && recurrenceNth === 'last' && recurrenceWeekday === 'friday' ? 'active' : ''}`}
+                          onClick={() => applyPreset('last_friday')}
+                        >
+                          ⚡ Last Friday of month
+                        </button>
+                        <button
+                          type="button"
+                          className={`recurrence-preset-chip ${recurrenceMonthlyType === 'nth_weekday' && recurrenceNth === '1st' && recurrenceWeekday === 'monday' ? 'active' : ''}`}
+                          onClick={() => applyPreset('1st_monday')}
+                        >
+                          ⚡ 1st Monday of month
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interval and Unit */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '10px', alignItems: 'flex-end' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                          Repeat every:
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="999"
+                          className="input"
+                          value={recurrenceInterval}
+                          onChange={(e) => setRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                          Frequency Unit:
+                        </label>
+                        <select
+                          className="select"
+                          value={recurrenceUnit}
+                          onChange={(e) => setRecurrenceUnit(e.target.value)}
+                        >
+                          <option value="days">Days</option>
+                          <option value="weeks">Weeks</option>
+                          <option value="months">Months</option>
+                          <option value="years">Years</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Frequency Details based on recurrenceUnit */}
+                    {recurrenceUnit === 'days' && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                          Starting Date (Cycle Anchor):
+                        </label>
+                        <input
+                          type="date"
+                          className="input"
+                          value={recurrenceStartDate}
+                          onChange={(e) => setRecurrenceStartDate(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    {recurrenceUnit === 'weeks' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                            Repeat on Weekday(s):
+                          </label>
+                          <div className="weekday-chips-grid">
+                            {[
+                              { key: 'monday', label: 'Mon' },
+                              { key: 'tuesday', label: 'Tue' },
+                              { key: 'wednesday', label: 'Wed' },
+                              { key: 'thursday', label: 'Thu' },
+                              { key: 'friday', label: 'Fri' },
+                              { key: 'saturday', label: 'Sat' },
+                              { key: 'sunday', label: 'Sun' }
+                            ].map((d) => (
+                              <button
+                                key={d.key}
+                                type="button"
+                                className={`weekday-chip ${recurrenceDaysOfWeek.includes(d.key) ? 'selected' : ''}`}
+                                onClick={() => toggleDayOfWeek(d.key)}
+                              >
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                            Starting Week Anchor:
+                          </label>
+                          <input
+                            type="date"
+                            className="input"
+                            value={recurrenceStartDate}
+                            onChange={(e) => setRecurrenceStartDate(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {recurrenceUnit === 'months' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-main)' }}>
+                            <input
+                              type="radio"
+                              name="customMonthlyType"
+                              checked={recurrenceMonthlyType === 'day_of_month'}
+                              onChange={() => setRecurrenceMonthlyType('day_of_month')}
+                            />
+                            <span>Day of Month</span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-main)' }}>
+                            <input
+                              type="radio"
+                              name="customMonthlyType"
+                              checked={recurrenceMonthlyType === 'nth_weekday'}
+                              onChange={() => setRecurrenceMonthlyType('nth_weekday')}
+                            />
+                            <span>Weekday Pattern (e.g. Last Friday)</span>
+                          </label>
+                        </div>
+
+                        {recurrenceMonthlyType === 'day_of_month' ? (
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                              Day of Month:
+                            </label>
+                            <select
+                              className="select"
+                              value={recurringDayOfMonth}
+                              onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
+                            >
+                              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                                return (
+                                  <option key={day} value={day}>
+                                    {day}{suffix} of the month
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>Position:</label>
+                              <select
+                                className="select"
+                                value={recurrenceNth}
+                                onChange={(e) => setRecurrenceNth(e.target.value)}
+                              >
+                                <option value="last">Last</option>
+                                <option value="1st">1st</option>
+                                <option value="2nd">2nd</option>
+                                <option value="3rd">3rd</option>
+                                <option value="4th">4th</option>
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>Weekday:</label>
+                              <select
+                                className="select"
+                                value={recurrenceWeekday}
+                                onChange={(e) => setRecurrenceWeekday(e.target.value)}
+                              >
+                                <option value="friday">Friday</option>
+                                <option value="monday">Monday</option>
+                                <option value="tuesday">Tuesday</option>
+                                <option value="wednesday">Wednesday</option>
+                                <option value="thursday">Thursday</option>
+                                <option value="saturday">Saturday</option>
+                                <option value="sunday">Sunday</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {recurrenceUnit === 'years' && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                            Month:
+                          </label>
+                          <select
+                            className="select"
+                            value={recurringMonth}
+                            onChange={(e) => setRecurringMonth(Number(e.target.value))}
+                          >
+                            {[
+                              'January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'
+                            ].map((m, idx) => (
+                              <option key={m} value={idx + 1}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '4px', fontWeight: 600 }}>
+                            Day:
+                          </label>
+                          <select
+                            className="select"
+                            value={recurringDayOfMonth}
+                            onChange={(e) => setRecurringDayOfMonth(Number(e.target.value))}
+                          >
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                              const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                              return (
+                                <option key={day} value={day}>{day}{suffix}</option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Live summary badge */}
+                    <div className="recurrence-summary-preview">
+                      <Repeat size={14} color="var(--primary)" />
+                      <span>Rule: <strong>{liveRecurrenceSummary}</strong></span>
                     </div>
                   </div>
                 )}

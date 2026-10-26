@@ -34,7 +34,8 @@ export const TaskCard = ({ task, onEdit }) => {
     toggleTaskStep, 
     toggleStopRecurrence,
     toggleRecurringDateComplete,
-    recurringDate 
+    recurringDate,
+    getRecurrenceLabel 
   } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isStepsExpanded, setIsStepsExpanded] = useState(true);
@@ -322,9 +323,9 @@ export const TaskCard = ({ task, onEdit }) => {
 
           {/* Recurrence Badge */}
           {task.recurrence && task.recurrence !== 'none' && (
-            <span className="badge badge-recurrence" title={`Recurring: repeats ${task.recurrence}`}>
+            <span className="badge badge-recurrence" title={`Recurring: ${getRecurrenceLabel(task)}`}>
               <Repeat size={11} />
-              <span style={{ textTransform: 'capitalize' }}>{task.recurrence}</span>
+              <span>{getRecurrenceLabel(task)}</span>
             </span>
           )}
 
