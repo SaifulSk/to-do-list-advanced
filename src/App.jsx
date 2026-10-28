@@ -18,7 +18,13 @@ import { AuthPage } from './components/auth/AuthPage';
 function MainLayout() {
   const { currentUser, loading } = useAuth();
   const { theme, toggleTheme, defaultView } = useTheme();
-  const { taskTypeTab, setTaskTypeTab, normalTasks, recurringTasks } = useTasks();
+  const { 
+    taskTypeTab, 
+    setTaskTypeTab, 
+    normalTasks, 
+    recurringTasks,
+    defaultTaskType
+  } = useTasks();
 
   const [currentView, setCurrentView] = useState(() => {
     const userKey = currentUser?.uid ? `zenith_default_view_${currentUser.uid}` : 'zenith_default_view';
@@ -93,33 +99,49 @@ function MainLayout() {
 
       {/* Main Workspace Area */}
       <main className="main-content">
-        {/* Task Segmentation Tabs: Normal vs Recurring */}
-        <div className="task-type-tabs">
-          <button 
-            type="button"
-            className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
-            onClick={() => setTaskTypeTab('normal')}
-          >
-            <CheckSquare size={15} />
-            <span>Normal Tasks</span>
-            <span className="task-type-badge">{normalTasks.length}</span>
-          </button>
+        {/* Task Segmentation Header Bar: Normal vs Recurring Tabs + Extreme-Right Date Picker */}
+        <div className="task-type-header-bar">
+          <div className="task-type-tabs">
+            <button 
+              type="button"
+              className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
+              onClick={() => setTaskTypeTab('normal')}
+              title={defaultTaskType === 'normal' ? "Normal Tasks (Default Tab)" : "Normal Tasks"}
+            >
+              <CheckSquare size={15} />
+              <span>Normal Tasks</span>
+              <span className="task-type-badge">{normalTasks.length}</span>
+              {defaultTaskType === 'normal' && (
+                <span className="tab-default-dot" title="Default Tasks Tab" />
+              )}
+            </button>
 
-          <button 
-            type="button"
-            className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
-            onClick={() => setTaskTypeTab('recurring')}
-          >
-            <Repeat size={15} />
-            <span>Recurring Tasks</span>
-            <span className="task-type-badge">{recurringTasks.length}</span>
-          </button>
+            <button 
+              type="button"
+              className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
+              onClick={() => setTaskTypeTab('recurring')}
+              title={defaultTaskType === 'recurring' ? "Recurring Tasks (Default Tab)" : "Recurring Tasks"}
+            >
+              <Repeat size={15} />
+              <span>Recurring Tasks</span>
+              <span className="task-type-badge">{recurringTasks.length}</span>
+              {defaultTaskType === 'recurring' && (
+                <span className="tab-default-dot" title="Default Tasks Tab" />
+              )}
+            </button>
+          </div>
+
+          {/* Extreme-Right on Desktop, Center-Aligned on Mobile */}
+          {taskTypeTab === 'recurring' && (
+            <div className="recurring-date-picker-container">
+              <RecurringDatePicker />
+            </div>
+          )}
         </div>
 
         {/* Views: List, Table, or Calendar */}
         {currentView === 'list' ? (
           <>
-            {taskTypeTab === 'recurring' && <RecurringDatePicker />}
             <TaskFilters />
             <TaskListView 
               onEditTask={handleEditTask} 
@@ -128,7 +150,6 @@ function MainLayout() {
           </>
         ) : currentView === 'table' ? (
           <>
-            {taskTypeTab === 'recurring' && <RecurringDatePicker />}
             <TaskFilters />
             <TaskTableView 
               onEditTask={handleEditTask} 

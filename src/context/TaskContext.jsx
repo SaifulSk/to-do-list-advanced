@@ -25,7 +25,9 @@ import {
   deleteTaskFromFirestore,
   subscribeToAssignees,
   addAssigneeToFirestore,
-  deleteAssigneeFromFirestore
+  deleteAssigneeFromFirestore,
+  saveUserPreferences,
+  getUserPreferences
 } from '../services/firebase';
 
 const TaskContext = createContext(null);
@@ -387,8 +389,49 @@ export const TaskProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(false);
 
+  // Default Task Type ('normal' vs 'recurring')
+  const [defaultTaskType, setDefaultTaskType] = useState(() => {
+    const userKey = currentUser?.uid ? `zenith_default_task_type_${currentUser.uid}` : 'zenith_default_task_type';
+    return localStorage.getItem(userKey) || localStorage.getItem('zenith_default_task_type') || 'normal';
+  });
+
   // Filters state
-  const [taskTypeTab, setTaskTypeTab] = useState('normal'); // 'normal' | 'recurring'
+  const [taskTypeTab, setTaskTypeTab] = useState(() => {
+    const userKey = currentUser?.uid ? `zenith_default_task_type_${currentUser.uid}` : 'zenith_default_task_type';
+    return localStorage.getItem(userKey) || localStorage.getItem('zenith_default_task_type') || 'normal';
+  });
+
+  // Keep defaultTaskType synced with account
+  useEffect(() => {
+    const userKey = currentUser?.uid ? `zenith_default_task_type_${currentUser.uid}` : 'zenith_default_task_type';
+    const cached = localStorage.getItem(userKey) || localStorage.getItem('zenith_default_task_type') || 'normal';
+    setDefaultTaskType(cached);
+
+    if (currentUser?.uid) {
+      getUserPreferences(currentUser.uid).then((prefs) => {
+        if (prefs?.defaultTaskType) {
+          setDefaultTaskType(prefs.defaultTaskType);
+          localStorage.setItem(userKey, prefs.defaultTaskType);
+          localStorage.setItem('zenith_default_task_type', prefs.defaultTaskType);
+        }
+      });
+    }
+  }, [currentUser?.uid]);
+
+  const setAccountDefaultTaskType = async (type) => {
+    if (type !== 'normal' && type !== 'recurring') return;
+    setDefaultTaskType(type);
+    localStorage.setItem('zenith_default_task_type', type);
+    if (currentUser?.uid) {
+      localStorage.setItem(`zenith_default_task_type_${currentUser.uid}`, type);
+      try {
+        await saveUserPreferences(currentUser.uid, { defaultTaskType: type });
+      } catch (err) {
+        console.warn('Could not persist defaultTaskType to Firestore:', err);
+      }
+    }
+  };
+
   const [recurringDate, setRecurringDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('all'); // all, urgent, high, medium, low
@@ -1015,6 +1058,8 @@ export const TaskProvider = ({ children }) => {
     recurringTasks,
     taskTypeTab,
     setTaskTypeTab,
+    defaultTaskType,
+    setAccountDefaultTaskType,
     recurringDate,
     setRecurringDate,
     isTaskScheduledOnDate,

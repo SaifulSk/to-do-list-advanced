@@ -11,10 +11,13 @@ import {
   Table as TableIcon, 
   Calendar as CalendarIcon, 
   LayoutGrid, 
-  Star 
+  Star,
+  CheckSquare,
+  Repeat
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTasks } from '../../context/TaskContext';
 
 export const AuthModal = ({ isOpen, onClose, currentView, onSelectView }) => {
   const { currentUser, logout } = useAuth();
@@ -26,6 +29,7 @@ export const AuthModal = ({ isOpen, onClose, currentView, onSelectView }) => {
     defaultView,
     setDefaultView
   } = useTheme();
+  const { defaultTaskType, setAccountDefaultTaskType } = useTasks();
 
   // Custom color state if user enters custom hex
   const isPreset = availablePalettes.some((p) => p.id === currentPalette);
@@ -170,6 +174,63 @@ export const AuthModal = ({ isOpen, onClose, currentView, onSelectView }) => {
                   <span className="default-view-sub">Set Default</span>
                 )}
               </button>
+            </div>
+
+            {/* Default Task Type: Normal vs Recurring */}
+            <div style={{ marginTop: '20px' }}>
+              <div className="account-palette-header">
+                <div className="account-palette-title">
+                  <CheckSquare size={15} color="var(--primary)" />
+                  <span>Default Tasks Tab</span>
+                </div>
+                <span className="account-palette-active-label" style={{ textTransform: 'capitalize' }}>
+                  {defaultTaskType === 'recurring' ? 'Recurring Tasks' : 'Normal Tasks'}
+                </span>
+              </div>
+
+              <p className="account-palette-desc">
+                Choose whether Normal Tasks or Recurring Tasks opens by default.
+              </p>
+
+              <div className="default-view-selector" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <button
+                  type="button"
+                  className={`default-view-btn ${defaultTaskType === 'normal' ? 'active' : ''}`}
+                  onClick={() => setAccountDefaultTaskType('normal')}
+                  title="Set Normal Tasks as default"
+                >
+                  <div className="default-view-btn-inner">
+                    <CheckSquare size={16} />
+                    <span>Normal Tasks</span>
+                  </div>
+                  {defaultTaskType === 'normal' ? (
+                    <span className="default-view-badge">
+                      <Star size={10} fill="currentColor" /> Default
+                    </span>
+                  ) : (
+                    <span className="default-view-sub">Set Default</span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={`default-view-btn ${defaultTaskType === 'recurring' ? 'active' : ''}`}
+                  onClick={() => setAccountDefaultTaskType('recurring')}
+                  title="Set Recurring Tasks as default"
+                >
+                  <div className="default-view-btn-inner">
+                    <Repeat size={16} />
+                    <span>Recurring Tasks</span>
+                  </div>
+                  {defaultTaskType === 'recurring' ? (
+                    <span className="default-view-badge">
+                      <Star size={10} fill="currentColor" /> Default
+                    </span>
+                  ) : (
+                    <span className="default-view-sub">Set Default</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
