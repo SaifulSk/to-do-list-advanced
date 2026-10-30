@@ -99,69 +99,71 @@ function MainLayout() {
 
       {/* Main Workspace Area */}
       <main className="main-content">
-        {/* Task Segmentation Header Bar: Normal vs Recurring Tabs + Extreme-Right Date Picker */}
-        <div className="task-type-header-bar">
-          <div className="task-type-tabs">
-            <button 
-              type="button"
-              className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
-              onClick={() => setTaskTypeTab('normal')}
-              title={defaultTaskType === 'normal' ? "Normal Tasks (Default Tab)" : "Normal Tasks"}
-            >
-              <CheckSquare size={15} />
-              <span>Normal Tasks</span>
-              <span className="task-type-badge">{normalTasks.length}</span>
-              {defaultTaskType === 'normal' && (
-                <span className="tab-default-dot" title="Default Tasks Tab" />
-              )}
-            </button>
+        {/* Fixed Top Controls Header (Tabs, Date Picker & Search/Filters) */}
+        <div className="workspace-fixed-header">
+          {/* Task Segmentation Header Bar: Normal vs Recurring Tabs + Extreme-Right Date Picker */}
+          <div className="task-type-header-bar">
+            <div className="task-type-tabs">
+              <button 
+                type="button"
+                className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
+                onClick={() => setTaskTypeTab('normal')}
+                title={defaultTaskType === 'normal' ? "Normal Tasks (Default Tab)" : "Normal Tasks"}
+              >
+                <CheckSquare size={15} />
+                <span>Normal Tasks</span>
+                <span className="task-type-badge">{normalTasks.length}</span>
+                {defaultTaskType === 'normal' && (
+                  <span className="tab-default-dot" title="Default Tasks Tab" />
+                )}
+              </button>
 
-            <button 
-              type="button"
-              className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
-              onClick={() => setTaskTypeTab('recurring')}
-              title={defaultTaskType === 'recurring' ? "Recurring Tasks (Default Tab)" : "Recurring Tasks"}
-            >
-              <Repeat size={15} />
-              <span>Recurring Tasks</span>
-              <span className="task-type-badge">{recurringTasks.length}</span>
-              {defaultTaskType === 'recurring' && (
-                <span className="tab-default-dot" title="Default Tasks Tab" />
-              )}
-            </button>
+              <button 
+                type="button"
+                className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
+                onClick={() => setTaskTypeTab('recurring')}
+                title={defaultTaskType === 'recurring' ? "Recurring Tasks (Default Tab)" : "Recurring Tasks"}
+              >
+                <Repeat size={15} />
+                <span>Recurring Tasks</span>
+                <span className="task-type-badge">{recurringTasks.length}</span>
+                {defaultTaskType === 'recurring' && (
+                  <span className="tab-default-dot" title="Default Tasks Tab" />
+                )}
+              </button>
+            </div>
+
+            {/* Extreme-Right on Desktop, Center-Aligned on Mobile */}
+            {taskTypeTab === 'recurring' && (
+              <div className="recurring-date-picker-container">
+                <RecurringDatePicker />
+              </div>
+            )}
           </div>
 
-          {/* Extreme-Right on Desktop, Center-Aligned on Mobile */}
-          {taskTypeTab === 'recurring' && (
-            <div className="recurring-date-picker-container">
-              <RecurringDatePicker />
-            </div>
-          )}
+          {/* Search field & Filter icon with cascading submenus (for List and Table views) */}
+          {currentView !== 'calendar' && <TaskFilters />}
         </div>
 
-        {/* Views: List, Table, or Calendar */}
-        {currentView === 'list' ? (
-          <>
-            <TaskFilters />
+        {/* Scrollable View Area (Only list/table items scroll) */}
+        <div className="workspace-scrollable-body">
+          {currentView === 'list' ? (
             <TaskListView 
               onEditTask={handleEditTask} 
               onOpenNewTask={() => handleOpenNewTask()} 
             />
-          </>
-        ) : currentView === 'table' ? (
-          <>
-            <TaskFilters />
+          ) : currentView === 'table' ? (
             <TaskTableView 
               onEditTask={handleEditTask} 
               onOpenNewTask={() => handleOpenNewTask()} 
             />
-          </>
-        ) : (
-          <CalendarView 
-            onOpenNewTask={handleOpenNewTask} 
-            onEditTask={handleEditTask} 
-          />
-        )}
+          ) : (
+            <CalendarView 
+              onOpenNewTask={handleOpenNewTask} 
+              onEditTask={handleEditTask} 
+            />
+          )}
+        </div>
       </main>
 
       {/* Modals */}
