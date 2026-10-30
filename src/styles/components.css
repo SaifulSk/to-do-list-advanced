@@ -494,15 +494,8 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100%;
-  flex: 1;
-  min-height: 0;
-  align-content: start;
-  padding-right: 6px;
-  padding-bottom: 24px;
-  -webkit-overflow-scrolling: touch;
+  grid-auto-rows: max-content;
+  padding-bottom: 30px;
 }
 
 .task-card {
@@ -517,6 +510,7 @@
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  min-height: fit-content;
 }
 .task-card::before {
   content: '';
@@ -2220,11 +2214,27 @@
 .workspace-scrollable-body {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
   position: relative;
   z-index: 1;
+}
+
+.workspace-scrollable-body.view-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
+.workspace-scrollable-body.view-table {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+.workspace-scrollable-body.view-calendar {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Task Type Header Bar (Normal vs Recurring Tabs + Extreme-Right Date Picker) */
@@ -2292,6 +2302,37 @@
   background: var(--primary);
   color: #ffffff;
   border-color: transparent;
+}
+
+.tab-default-star-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: 2px;
+  opacity: 0.55;
+}
+
+.task-type-tab:hover .tab-default-star-btn,
+.tab-default-star-btn:hover {
+  opacity: 1;
+  color: #f59e0b;
+  background: var(--bg-surface-elevated);
+  transform: scale(1.15);
+}
+
+.tab-default-star-btn.is-default {
+  opacity: 1;
+  color: #f59e0b;
+}
+
+.tab-default-star-btn.is-default:hover {
+  transform: scale(1.2);
 }
 
 .tab-default-dot {

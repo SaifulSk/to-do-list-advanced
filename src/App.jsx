@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, Repeat } from 'lucide-react';
+import { CheckSquare, Repeat, Star } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
@@ -23,7 +23,8 @@ function MainLayout() {
     setTaskTypeTab, 
     normalTasks, 
     recurringTasks,
-    defaultTaskType
+    defaultTaskType,
+    setAccountDefaultTaskType
   } = useTasks();
 
   const [currentView, setCurrentView] = useState(() => {
@@ -108,28 +109,62 @@ function MainLayout() {
                 type="button"
                 className={`task-type-tab ${taskTypeTab === 'normal' ? 'active' : ''}`}
                 onClick={() => setTaskTypeTab('normal')}
-                title={defaultTaskType === 'normal' ? "Normal Tasks (Default Tab)" : "Normal Tasks"}
+                title="Normal Tasks"
               >
                 <CheckSquare size={15} />
                 <span>Normal Tasks</span>
                 <span className="task-type-badge">{normalTasks.length}</span>
-                {defaultTaskType === 'normal' && (
-                  <span className="tab-default-dot" title="Default Tasks Tab" />
-                )}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className={`tab-default-star-btn ${defaultTaskType === 'normal' ? 'is-default' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAccountDefaultTaskType('normal');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAccountDefaultTaskType('normal');
+                    }
+                  }}
+                  title={defaultTaskType === 'normal' ? "Default tab (opens on start)" : "Click to set Normal Tasks as default"}
+                  aria-label={defaultTaskType === 'normal' ? "Default tab" : "Set Normal Tasks as default"}
+                >
+                  <Star size={13} fill={defaultTaskType === 'normal' ? 'currentColor' : 'none'} />
+                </span>
               </button>
 
               <button 
                 type="button"
                 className={`task-type-tab ${taskTypeTab === 'recurring' ? 'active' : ''}`}
                 onClick={() => setTaskTypeTab('recurring')}
-                title={defaultTaskType === 'recurring' ? "Recurring Tasks (Default Tab)" : "Recurring Tasks"}
+                title="Recurring Tasks"
               >
                 <Repeat size={15} />
                 <span>Recurring Tasks</span>
                 <span className="task-type-badge">{recurringTasks.length}</span>
-                {defaultTaskType === 'recurring' && (
-                  <span className="tab-default-dot" title="Default Tasks Tab" />
-                )}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className={`tab-default-star-btn ${defaultTaskType === 'recurring' ? 'is-default' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAccountDefaultTaskType('recurring');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAccountDefaultTaskType('recurring');
+                    }
+                  }}
+                  title={defaultTaskType === 'recurring' ? "Default tab (opens on start)" : "Click to set Recurring Tasks as default"}
+                  aria-label={defaultTaskType === 'recurring' ? "Default tab" : "Set Recurring Tasks as default"}
+                >
+                  <Star size={13} fill={defaultTaskType === 'recurring' ? 'currentColor' : 'none'} />
+                </span>
               </button>
             </div>
 
@@ -146,7 +181,7 @@ function MainLayout() {
         </div>
 
         {/* Scrollable View Area (Only list/table items scroll) */}
-        <div className="workspace-scrollable-body">
+        <div className={`workspace-scrollable-body view-${currentView}`}>
           {currentView === 'list' ? (
             <TaskListView 
               onEditTask={handleEditTask} 
