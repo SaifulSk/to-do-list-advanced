@@ -446,20 +446,19 @@ export const TaskFilters = () => {
           )}
         </div>
 
-        {/* 3. Ascending / Descending Button beside Filter icon */}
+        {/* 3. Ascending / Descending Button beside Filter icon (Icon-only) */}
         <button
           type="button"
           className="btn-icon sort-order-btn"
           onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          title={`Order: ${sortOrder === 'asc' ? 'Ascending (A-Z / Earliest first)' : 'Descending (Z-A / Latest first)'}`}
-          aria-label="Toggle sort order"
+          title={`Order: ${sortOrder === 'asc' ? 'Ascending (Earliest / A-Z first). Click for Descending' : 'Descending (Latest / Z-A first). Click for Ascending'}`}
+          aria-label={`Toggle sort order (Current: ${sortOrder === 'asc' ? 'Ascending' : 'Descending'})`}
         >
           {sortOrder === 'asc' ? (
-            <ArrowUp size={15} className="sort-order-icon" />
+            <ArrowUp size={17} className="sort-order-icon" />
           ) : (
-            <ArrowDown size={15} className="sort-order-icon" />
+            <ArrowDown size={17} className="sort-order-icon" />
           )}
-          <span className="sort-order-badge">{sortOrder === 'asc' ? 'ASC' : 'DESC'}</span>
         </button>
       </div>
     </div>

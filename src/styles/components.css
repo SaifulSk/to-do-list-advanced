@@ -254,9 +254,9 @@
 }
 
 .sort-order-btn {
+  width: 40px;
   height: 40px;
-  padding: 0 10px;
-  gap: 6px;
+  padding: 0;
   border-radius: var(--radius-md);
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
@@ -265,8 +265,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 700;
   transition: all var(--transition-fast);
 }
 
@@ -283,18 +281,7 @@
 }
 
 .sort-order-btn:hover .sort-order-icon {
-  transform: scale(1.15);
-}
-
-.sort-order-badge {
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-}
-
-.sort-order-btn:hover .sort-order-badge {
-  color: var(--primary);
+  transform: scale(1.18);
 }
 
 /* Popover Menu */
@@ -1257,11 +1244,11 @@
   }
 
   .task-type-label-desktop {
-    display: none;
+    display: none !important;
   }
 
   .task-type-label-mobile {
-    display: inline;
+    display: inline !important;
   }
 
   .recurring-date-picker-container {
@@ -2324,15 +2311,7 @@
   border: 1px solid var(--border-subtle);
 }
 
-.task-type-tab.active .task-type-label-desktop {
-  display: inline;
-}
-
-.task-type-label-mobile {
-  display: none;
-}
-
-.task-type-badge {
+.task-type-tab.active .task-type-badge {
   background: var(--primary);
   color: #ffffff;
   border-color: transparent;
