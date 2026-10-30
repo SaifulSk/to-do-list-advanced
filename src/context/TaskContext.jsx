@@ -438,8 +438,29 @@ export const TaskProvider = ({ children }) => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, completed
   const [filterNeedHelp, setFilterNeedHelp] = useState(false); // boolean
   const [filterAssignee, setFilterAssignee] = useState('all');
-  const [sortBy, setSortBy] = useState('dueDate'); // dueDate, createdAt, priority, title
-  const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
+  const [sortBy, setSortByState] = useState(() => {
+    return localStorage.getItem('zenith_sort_by') || 'createdAt';
+  });
+  const [sortOrder, setSortOrderState] = useState(() => {
+    return localStorage.getItem('zenith_sort_order') || 'asc';
+  });
+
+  const setSortBy = (newSortBy) => {
+    setSortByState(newSortBy);
+    try {
+      localStorage.setItem('zenith_sort_by', newSortBy);
+    } catch (e) {}
+  };
+
+  const setSortOrder = (newOrder) => {
+    setSortOrderState((prev) => {
+      const next = typeof newOrder === 'function' ? newOrder(prev) : newOrder;
+      try {
+        localStorage.setItem('zenith_sort_order', next);
+      } catch (e) {}
+      return next;
+    });
+  };
 
   // Sync to local storage for backup
   useEffect(() => {

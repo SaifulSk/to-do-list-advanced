@@ -6,6 +6,7 @@ import {
   Flame, 
   AlertTriangle, 
   Clock, 
+  ArrowUp,
   ArrowDown, 
   Users, 
   ArrowUpDown,
@@ -80,11 +81,11 @@ export const TaskFilters = () => {
 
   const getSortLabel = () => {
     switch (sortBy) {
-      case 'dueDate': return 'Due Date';
       case 'createdAt': return 'Created Date';
+      case 'dueDate': return 'Due Date';
       case 'priority': return 'Priority';
       case 'title': return 'Title';
-      default: return 'Due Date';
+      default: return 'Created Date';
     }
   };
 
@@ -453,7 +454,11 @@ export const TaskFilters = () => {
           title={`Order: ${sortOrder === 'asc' ? 'Ascending (A-Z / Earliest first)' : 'Descending (Z-A / Latest first)'}`}
           aria-label="Toggle sort order"
         >
-          <ArrowUpDown size={16} />
+          {sortOrder === 'asc' ? (
+            <ArrowUp size={15} className="sort-order-icon" />
+          ) : (
+            <ArrowDown size={15} className="sort-order-icon" />
+          )}
           <span className="sort-order-badge">{sortOrder === 'asc' ? 'ASC' : 'DESC'}</span>
         </button>
       </div>

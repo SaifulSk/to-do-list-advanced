@@ -270,10 +270,20 @@
   transition: all var(--transition-fast);
 }
 
+.sort-order-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
 .sort-order-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--primary-light);
+}
+
+.sort-order-btn:hover .sort-order-icon {
+  transform: scale(1.15);
 }
 
 .sort-order-badge {
@@ -1244,6 +1254,14 @@
   .task-type-tabs {
     width: 100%;
     justify-content: center;
+  }
+
+  .task-type-label-desktop {
+    display: none;
+  }
+
+  .task-type-label-mobile {
+    display: inline;
   }
 
   .recurring-date-picker-container {
@@ -2288,6 +2306,14 @@
   box-shadow: var(--shadow-xs);
 }
 
+.task-type-label-desktop {
+  display: inline;
+}
+
+.task-type-label-mobile {
+  display: none;
+}
+
 .task-type-badge {
   font-size: 0.75rem;
   font-weight: 700;
@@ -2298,7 +2324,15 @@
   border: 1px solid var(--border-subtle);
 }
 
-.task-type-tab.active .task-type-badge {
+.task-type-tab.active .task-type-label-desktop {
+  display: inline;
+}
+
+.task-type-label-mobile {
+  display: none;
+}
+
+.task-type-badge {
   background: var(--primary);
   color: #ffffff;
   border-color: transparent;

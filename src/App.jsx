@@ -112,7 +112,8 @@ function MainLayout() {
                 title="Normal Tasks"
               >
                 <CheckSquare size={15} />
-                <span>Normal Tasks</span>
+                <span className="task-type-label-desktop">Normal Tasks</span>
+                <span className="task-type-label-mobile">Normal</span>
                 <span className="task-type-badge">{normalTasks.length}</span>
                 <span
                   role="button"
@@ -143,7 +144,8 @@ function MainLayout() {
                 title="Recurring Tasks"
               >
                 <Repeat size={15} />
-                <span>Recurring Tasks</span>
+                <span className="task-type-label-desktop">Recurring Tasks</span>
+                <span className="task-type-label-mobile">Recurring</span>
                 <span className="task-type-badge">{recurringTasks.length}</span>
                 <span
                   role="button"
