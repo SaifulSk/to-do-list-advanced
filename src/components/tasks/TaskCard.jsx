@@ -38,7 +38,7 @@ export const TaskCard = ({ task, onEdit }) => {
     getRecurrenceLabel 
   } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isStepsExpanded, setIsStepsExpanded] = useState(true);
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false);
 
   const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
   const isCompleted = isRecurring
