@@ -80,10 +80,17 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setRecurrence(initialTask.recurrence || 'none');
         setRecurrenceInterval(Number(initialTask.recurrenceInterval) || 1);
         setRecurrenceUnit(initialTask.recurrenceUnit || 'days');
+        const initialWeekDay = (
+          initialTask.recurringDayOfWeek ||
+          (Array.isArray(initialTask.recurrenceDaysOfWeek) && initialTask.recurrenceDaysOfWeek[0]) ||
+          (initialTask.dueDate ? format(new Date(initialTask.dueDate), 'EEEE').toLowerCase() : 'friday')
+        ).toLowerCase();
+
+        setRecurringDayOfWeek(initialWeekDay);
         setRecurrenceDaysOfWeek(
           Array.isArray(initialTask.recurrenceDaysOfWeek) && initialTask.recurrenceDaysOfWeek.length > 0
-            ? initialTask.recurrenceDaysOfWeek
-            : (initialTask.recurringDayOfWeek ? [initialTask.recurringDayOfWeek] : ['monday'])
+            ? initialTask.recurrenceDaysOfWeek.map((d) => d.toLowerCase())
+            : [initialWeekDay]
         );
         setRecurrenceMonthlyType(initialTask.recurrenceMonthlyType || 'day_of_month');
         setRecurrenceNth(initialTask.recurrenceNth || 'last');
@@ -94,7 +101,6 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
             || (initialTask.createdAt ? initialTask.createdAt.split('T')[0] : '')
             || format(new Date(), 'yyyy-MM-dd')
         );
-        setRecurringDayOfWeek(initialTask.recurringDayOfWeek || (initialTask.dueDate ? format(new Date(initialTask.dueDate), 'EEEE').toLowerCase() : format(new Date(), 'EEEE').toLowerCase()));
         setRecurringDayOfMonth(initialTask.recurringDayOfMonth || (initialTask.dueDate ? new Date(initialTask.dueDate).getDate() : new Date().getDate()));
         setRecurringMonth(initialTask.recurringMonth || (initialTask.dueDate ? (new Date(initialTask.dueDate).getMonth() + 1) : (new Date().getMonth() + 1)));
         setIsRecurringStopped(Boolean(initialTask.isRecurringStopped));
@@ -132,12 +138,12 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setRecurrence('none');
         setRecurrenceInterval(1);
         setRecurrenceUnit('days');
-        setRecurrenceDaysOfWeek([format(now, 'EEEE').toLowerCase()]);
+        setRecurrenceDaysOfWeek(['friday']);
         setRecurrenceMonthlyType('day_of_month');
         setRecurrenceNth('last');
         setRecurrenceWeekday('friday');
         setRecurrenceStartDate(todayStr);
-        setRecurringDayOfWeek(format(now, 'EEEE').toLowerCase());
+        setRecurringDayOfWeek('friday');
         setRecurringDayOfMonth(now.getDate());
         setRecurringMonth(now.getMonth() + 1);
         setIsRecurringStopped(false);
@@ -295,9 +301,11 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       recurrence: recurrence !== 'none' ? recurrence : null,
       recurrenceInterval: recurrence !== 'none' ? Math.max(1, Number(recurrenceInterval) || 1) : null,
       recurrenceUnit: recurrence === 'custom' ? recurrenceUnit : null,
-      recurrenceDaysOfWeek: (recurrence === 'weekly' || (recurrence === 'custom' && recurrenceUnit === 'weeks'))
-        ? (recurrenceDaysOfWeek.length > 0 ? recurrenceDaysOfWeek : [recurringDayOfWeek])
-        : null,
+      recurrenceDaysOfWeek: recurrence === 'weekly'
+        ? [recurringDayOfWeek.toLowerCase()]
+        : (recurrence === 'custom' && recurrenceUnit === 'weeks')
+          ? (recurrenceDaysOfWeek.length > 0 ? recurrenceDaysOfWeek.map(d => d.toLowerCase()) : [recurringDayOfWeek.toLowerCase()])
+          : null,
       recurrenceMonthlyType: (recurrence === 'monthly' || (recurrence === 'custom' && recurrenceUnit === 'months'))
         ? recurrenceMonthlyType
         : null,
@@ -310,7 +318,9 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
       recurrenceStartDate: recurrence !== 'none'
         ? (recurrenceStartDate || dueDate || format(new Date(), 'yyyy-MM-dd'))
         : null,
-      recurringDayOfWeek: recurrence === 'weekly' ? (recurrenceDaysOfWeek[0] || recurringDayOfWeek) : null,
+      recurringDayOfWeek: (recurrence === 'weekly' || (recurrence === 'custom' && recurrenceUnit === 'weeks'))
+        ? (recurrence === 'weekly' ? recurringDayOfWeek.toLowerCase() : (recurrenceDaysOfWeek[0] || recurringDayOfWeek).toLowerCase())
+        : null,
       recurringDayOfMonth: (recurrence === 'monthly' || recurrence === 'yearly' || (recurrence === 'custom' && recurrenceUnit === 'months'))
         ? Number(recurringDayOfMonth)
         : null,
@@ -629,7 +639,11 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                     <select
                       className="select"
                       value={recurringDayOfWeek}
-                      onChange={(e) => setRecurringDayOfWeek(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.toLowerCase();
+                        setRecurringDayOfWeek(val);
+                        setRecurrenceDaysOfWeek([val]);
+                      }}
                     >
                       <option value="monday">Every Monday</option>
                       <option value="tuesday">Every Tuesday</option>

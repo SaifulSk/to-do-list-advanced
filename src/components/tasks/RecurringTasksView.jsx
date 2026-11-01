@@ -30,77 +30,7 @@ import {
   getMonth, 
   isValid 
 } from 'date-fns';
-import { useTasks } from '../../context/TaskContext';
-
-// Helper function to check if a recurring task is scheduled on a given date (yyyy-MM-dd)
-export function isTaskScheduledOnDate(task, dateStr) {
-  if (!task.recurrence || task.recurrence === 'none') return false;
-
-  // 1. Creation date boundary: task appears on or after its creation date
-  if (task.createdAt && dateStr < task.createdAt) {
-    return false;
-  }
-
-  // 2. Stopped recurrence boundary: if stopped prior to dateStr, do not show
-  if (task.isRecurringStopped) {
-    if (task.recurrenceStoppedAt && dateStr > task.recurrenceStoppedAt) {
-      return false;
-    }
-  }
-
-  const targetDate = parseISO(dateStr);
-  if (!isValid(targetDate)) return false;
-
-  switch (task.recurrence) {
-    case 'daily':
-      // Daily tasks appear every day after creation
-      return true;
-
-    case 'weekly': {
-      const targetDayName = format(targetDate, 'EEEE').toLowerCase();
-      const taskDay = (task.recurringDayOfWeek || '').toLowerCase();
-      if (taskDay) {
-        return taskDay === targetDayName;
-      }
-      // Fallback: day of week from dueDate or createdAt
-      const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-      if (fallbackDate && isValid(fallbackDate)) {
-        return format(fallbackDate, 'EEEE').toLowerCase() === targetDayName;
-      }
-      return false;
-    }
-
-    case 'monthly': {
-      const targetDayOfMonth = getDate(targetDate);
-      let taskDay = Number(task.recurringDayOfMonth);
-      if (!taskDay || isNaN(taskDay)) {
-        const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-        if (fallbackDate && isValid(fallbackDate)) {
-          taskDay = getDate(fallbackDate);
-        }
-      }
-      return targetDayOfMonth === taskDay;
-    }
-
-    case 'yearly': {
-      const targetMonth = getMonth(targetDate) + 1; // 1-12
-      const targetDay = getDate(targetDate);
-      let taskMonth = Number(task.recurringMonth);
-      let taskDay = Number(task.recurringDayOfMonth);
-      if (!taskMonth || !taskDay || isNaN(taskMonth) || isNaN(taskDay)) {
-        const fallbackDate = task.dueDate ? parseISO(task.dueDate) : (task.createdAt ? parseISO(task.createdAt) : null);
-        if (fallbackDate && isValid(fallbackDate)) {
-          taskMonth = getMonth(fallbackDate) + 1;
-          taskDay = getDate(fallbackDate);
-        }
-      }
-      return targetMonth === taskMonth && targetDay === taskDay;
-    }
-
-    default:
-      return false;
-  }
-}
+import { useTasks, isTaskScheduledOnDate, getRecurrenceLabel } from '../../context/TaskContext';
 
 export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
   const { 
@@ -442,16 +372,7 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                     {/* Recurrence Rule Badge */}
                     <span className="badge badge-recurrence" style={{ fontSize: '0.75rem', gap: '5px' }}>
                       <Repeat size={12} />
-                      {task.recurrence === 'daily' && <span>Daily (Every day)</span>}
-                      {task.recurrence === 'weekly' && (
-                        <span>Weekly on {task.recurringDayOfWeek ? task.recurringDayOfWeek.charAt(0).toUpperCase() + task.recurringDayOfWeek.slice(1) : 'Scheduled Day'}</span>
-                      )}
-                      {task.recurrence === 'monthly' && (
-                        <span>Monthly on day {task.recurringDayOfMonth || 1}</span>
-                      )}
-                      {task.recurrence === 'yearly' && (
-                        <span>Yearly on Month {task.recurringMonth || 1}, Day {task.recurringDayOfMonth || 1}</span>
-                      )}
+                      <span>{getRecurrenceLabel(task)}</span>
                     </span>
 
                     {/* Recurrence Status: Active vs Stopped */}
