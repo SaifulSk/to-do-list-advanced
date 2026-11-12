@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Check, 
@@ -49,7 +49,20 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
   } = useTasks();
 
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
-  const [expandedTasks, setExpandedTasks] = useState({});
+  const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
+
+  // Close floating steps popover on click outside
+  useEffect(() => {
+    if (!activeStepsTaskId) return;
+    const handleClickOutside = (e) => {
+      if (e.target.closest('.table-steps-container')) return;
+      setActiveStepsTaskId(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeStepsTaskId]);
 
   const isFiltering = searchQuery || filterPriority !== 'all' || filterStatus !== 'all' || filterNeedHelp;
 
@@ -188,7 +201,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
             const dueInfo = getDueDateDisplay(task.dueDate, isCompleted);
 
             return (
-              <tr key={task.id} className={isCompleted ? 'completed' : ''}>
+              <tr key={task.id} className={`${isCompleted ? 'completed' : ''} ${activeStepsTaskId === task.id ? 'has-floating-menu-open' : ''}`}>
                 {/* Checkbox */}
                 <td style={{ textAlign: 'center' }}>
                   <div 
@@ -222,55 +235,83 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                       ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
                       : task.steps.filter((s) => s.completed).length;
                     const totalStepsCount = task.steps.length;
-                    const isExpanded = !!expandedTasks[task.id];
+                    const isExpanded = activeStepsTaskId === task.id;
                     const percentage = Math.round((completedStepsCount / totalStepsCount) * 100);
 
                     return (
-                      <div className="table-steps-container">
+                      <div className={`table-steps-container ${isExpanded ? 'menu-open' : ''}`}>
                         <button
                           type="button"
                           className="table-steps-toggle-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExpandedTasks((prev) => ({ ...prev, [task.id]: !prev[task.id] }));
+                            setActiveStepsTaskId((prev) => (prev === task.id ? null : task.id));
                           }}
-                          title="Click to view/complete steps"
+                          title={isExpanded ? "Close subtasks menu" : "Click to view / complete subtasks in menu"}
                         >
                           <ListChecks size={12} color="var(--primary)" />
                           <span>{completedStepsCount}/{totalStepsCount} steps ({percentage}%)</span>
                           {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                         </button>
 
+                        {/* Floating Menu Popover (Does NOT expand the table row) */}
                         {isExpanded && (
-                          <div className="table-steps-dropdown">
-                            {task.steps.map((step, idx) => {
-                              const isStepDone = isRecurring
-                                ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
-                                : Boolean(step.completed);
+                          <div 
+                            className="table-steps-floating-menu"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="card-steps-floating-header">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ListChecks size={13} color="var(--primary)" />
+                                <span className="card-steps-floating-title">Subtasks</span>
+                                <span className={`card-steps-pill ${percentage === 100 ? 'done' : ''}`}>
+                                  {completedStepsCount}/{totalStepsCount} ({percentage}%)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-icon card-steps-floating-close"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveStepsTaskId(null);
+                                }}
+                                title="Close"
+                                aria-label="Close subtasks menu"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
 
-                              return (
-                                <div
-                                  key={step.id || idx}
-                                  className={`table-step-row ${isStepDone ? 'completed' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isRecurring) {
-                                      toggleTaskStep(task.id, step.id, recurringDate);
-                                    } else {
-                                      toggleTaskStep(task.id, step.id);
-                                    }
-                                  }}
-                                >
+                            <div className="card-steps-floating-list">
+                              {task.steps.map((step, idx) => {
+                                const isStepDone = isRecurring
+                                  ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                                  : Boolean(step.completed);
+
+                                return (
                                   <div
-                                    className={`custom-checkbox table-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                                    title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                    key={step.id || idx}
+                                    className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isRecurring) {
+                                        toggleTaskStep(task.id, step.id, recurringDate);
+                                      } else {
+                                        toggleTaskStep(task.id, step.id);
+                                      }
+                                    }}
                                   >
-                                    {isStepDone && <Check size={9} />}
+                                    <div
+                                      className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                                      title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                    >
+                                      {isStepDone && <Check size={10} />}
+                                    </div>
+                                    <span className="card-step-text">{step.title}</span>
                                   </div>
-                                  <span className="table-step-text">{step.title}</span>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>
