@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Check, 
@@ -38,7 +38,22 @@ export const TaskCard = ({ task, onEdit }) => {
     getRecurrenceLabel 
   } = useTasks();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isStepsExpanded, setIsStepsExpanded] = useState(false);
+  const [isStepsOpen, setIsStepsOpen] = useState(false);
+  const stepsMenuRef = useRef(null);
+
+  // Close floating steps menu on click outside
+  useEffect(() => {
+    if (!isStepsOpen) return;
+    const handleClickOutside = (e) => {
+      if (stepsMenuRef.current && !stepsMenuRef.current.contains(e.target)) {
+        setIsStepsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStepsOpen]);
 
   const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
   const isCompleted = isRecurring
@@ -119,7 +134,7 @@ export const TaskCard = ({ task, onEdit }) => {
   };
 
   return (
-    <div className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''} ${isInProgress ? 'in-progress' : ''}`}>
+    <div className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''} ${isInProgress ? 'in-progress' : ''} ${isStepsOpen ? 'has-floating-menu-open' : ''}`}>
       {/* Checkbox */}
       <div 
         className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
@@ -186,11 +201,17 @@ export const TaskCard = ({ task, onEdit }) => {
           const percentage = Math.round((completedCount / totalCount) * 100);
 
           return (
-            <div className="card-steps-section">
+            <div 
+              className={`card-steps-section ${isStepsOpen ? 'menu-open' : ''}`}
+              ref={stepsMenuRef}
+            >
               <div 
                 className="card-steps-header" 
-                onClick={() => setIsStepsExpanded(!isStepsExpanded)}
-                title="Click to toggle steps display"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsStepsOpen(!isStepsOpen);
+                }}
+                title={isStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ListChecks size={13} color="var(--primary)" />
@@ -205,13 +226,17 @@ export const TaskCard = ({ task, onEdit }) => {
                   type="button" 
                   className="btn-icon" 
                   style={{ width: '20px', height: '20px', padding: 0 }}
-                  aria-label={isStepsExpanded ? "Collapse steps" : "Expand steps"}
+                  aria-label={isStepsOpen ? "Close subtasks menu" : "Open subtasks menu"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsStepsOpen(!isStepsOpen);
+                  }}
                 >
-                  {isStepsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {isStepsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
               </div>
 
-              {/* Progress Bar */}
+              {/* Progress Bar (Always compact) */}
               <div className="card-steps-bar-track">
                 <div 
                   className="card-steps-bar-fill" 
@@ -222,39 +247,66 @@ export const TaskCard = ({ task, onEdit }) => {
                 />
               </div>
 
-              {/* Step Checklist Rows */}
-              {isStepsExpanded && (
-                <div className="card-steps-list">
-                  {task.steps.map((step, idx) => {
-                    const isStepDone = isRecurring
-                      ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
-                      : Boolean(step.completed);
+              {/* Floating Menu Popover (Does NOT expand the card) */}
+              {isStepsOpen && (
+                <div 
+                  className="card-steps-floating-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="card-steps-floating-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ListChecks size={13} color="var(--primary)" />
+                      <span className="card-steps-floating-title">Subtasks</span>
+                      <span className={`card-steps-pill ${percentage === 100 ? 'done' : ''}`}>
+                        {completedCount}/{totalCount} ({percentage}%)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-icon card-steps-floating-close"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsStepsOpen(false);
+                      }}
+                      title="Close"
+                      aria-label="Close subtasks menu"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
 
-                    return (
-                      <div 
-                        key={step.id || idx} 
-                        className={`card-step-row ${isStepDone ? 'completed' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isRecurring) {
-                            toggleTaskStep(task.id, step.id, recurringDate);
-                          } else {
-                            toggleTaskStep(task.id, step.id);
-                          }
-                        }}
-                      >
+                  <div className="card-steps-floating-list">
+                    {task.steps.map((step, idx) => {
+                      const isStepDone = isRecurring
+                        ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                        : Boolean(step.completed);
+
+                      return (
                         <div 
-                          className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                          title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                          key={step.id || idx} 
+                          className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isRecurring) {
+                              toggleTaskStep(task.id, step.id, recurringDate);
+                            } else {
+                              toggleTaskStep(task.id, step.id);
+                            }
+                          }}
                         >
-                          {isStepDone && <Check size={10} />}
+                          <div 
+                            className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                            title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                          >
+                            {isStepDone && <Check size={10} />}
+                          </div>
+                          <span className="card-step-text">
+                            {step.title}
+                          </span>
                         </div>
-                        <span className="card-step-text">
-                          {step.title}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

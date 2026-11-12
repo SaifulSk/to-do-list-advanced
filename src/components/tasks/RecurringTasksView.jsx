@@ -245,7 +245,7 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
             return (
               <div 
                 key={task.id} 
-                className={`task-card priority-${task.priority} ${isCompletedForDate ? 'completed' : ''}`}
+                className={`task-card priority-${task.priority} ${isCompletedForDate ? 'completed' : ''} ${isStepsExpanded ? 'has-floating-menu-open' : ''}`}
                 style={{ opacity: task.isRecurringStopped ? 0.75 : 1 }}
               >
                 {/* Date-Specific Checkbox */}
@@ -309,11 +309,15 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                     const percentage = Math.round((completedCount / totalCount) * 100);
 
                     return (
-                      <div className="card-steps-section">
-                        <div 
-                          className="card-steps-header" 
-                          onClick={() => setExpandedSteps(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
-                        >
+                      <div 
+                        className={`card-steps-section ${isStepsExpanded ? 'menu-open' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedSteps(prev => ({ ...prev, [task.id]: !prev[task.id] }));
+                        }}
+                        title={isStepsExpanded ? "Close subtasks menu" : "Click to view subtasks"}
+                      >
+                        <div className="card-steps-header">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <ListChecks size={13} color="var(--primary)" />
                             <span className="card-steps-label">
@@ -327,12 +331,17 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                             type="button" 
                             className="btn-icon" 
                             style={{ width: '20px', height: '20px', padding: 0 }}
+                            aria-label={isStepsExpanded ? "Close subtasks menu" : "Open subtasks menu"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedSteps(prev => ({ ...prev, [task.id]: !prev[task.id] }));
+                            }}
                           >
                             {isStepsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           </button>
                         </div>
 
-                        {/* Progress Bar */}
+                        {/* Progress Bar (Always compact) */}
                         <div className="card-steps-bar-track">
                           <div 
                             className="card-steps-bar-fill" 
@@ -343,24 +352,51 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                           />
                         </div>
 
-                        {/* Steps List */}
+                        {/* Floating Menu Popover (Does NOT expand the card) */}
                         {isStepsExpanded && (
-                          <div className="card-steps-list">
-                            {task.steps.map((step, idx) => (
-                              <div 
-                                key={step.id || idx} 
-                                className={`card-step-row ${step.completed ? 'completed' : ''}`}
+                          <div 
+                            className="card-steps-floating-menu"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="card-steps-floating-header">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ListChecks size={13} color="var(--primary)" />
+                                <span className="card-steps-floating-title">Subtasks</span>
+                                <span className={`card-steps-pill ${percentage === 100 ? 'done' : ''}`}>
+                                  {completedCount}/{totalCount} ({percentage}%)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn-icon card-steps-floating-close"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleTaskStep(task.id, step.id);
+                                  setExpandedSteps(prev => ({ ...prev, [task.id]: false }));
                                 }}
+                                title="Close"
+                                aria-label="Close subtasks menu"
                               >
-                                <div className={`custom-checkbox card-step-checkbox ${step.completed ? 'checked' : ''}`}>
-                                  {step.completed && <Check size={10} />}
+                                <X size={13} />
+                              </button>
+                            </div>
+
+                            <div className="card-steps-floating-list">
+                              {task.steps.map((step, idx) => (
+                                <div 
+                                  key={step.id || idx} 
+                                  className={`card-step-row ${step.completed ? 'completed' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleTaskStep(task.id, step.id);
+                                  }}
+                                >
+                                  <div className={`custom-checkbox card-step-checkbox ${step.completed ? 'checked' : ''}`}>
+                                    {step.completed && <Check size={10} />}
+                                  </div>
+                                  <span className="card-step-text">{step.title}</span>
                                 </div>
-                                <span className="card-step-text">{step.title}</span>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

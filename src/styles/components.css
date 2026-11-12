@@ -505,9 +505,11 @@
   gap: 14px;
   transition: all var(--transition-fast);
   position: relative;
-  overflow: hidden;
   box-shadow: var(--shadow-sm);
   min-height: fit-content;
+}
+.task-card.has-floating-menu-open {
+  z-index: 45;
 }
 .task-card::before {
   content: '';
@@ -517,6 +519,8 @@
   bottom: 0;
   width: 4px;
   background: transparent;
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   transition: background var(--transition-fast);
 }
 .task-card.priority-urgent::before { background: var(--priority-urgent); }
@@ -2040,13 +2044,20 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   transition: all var(--transition-fast);
+  position: relative;
+  cursor: pointer;
+}
+
+.card-steps-section:hover,
+.card-steps-section.menu-open {
+  border-color: var(--primary-border);
+  background: var(--bg-hover);
 }
 
 .card-steps-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
   user-select: none;
 }
 
@@ -2084,20 +2095,78 @@
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
 }
 
-.card-steps-list {
+/* Floating Menu Popover */
+.card-steps-floating-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 260px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 10px 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: floatingStepsFadeIn 0.15s ease-out;
+  cursor: default;
+}
+
+@keyframes floatingStepsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-steps-floating-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.card-steps-floating-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.card-steps-floating-close {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+
+.card-steps-floating-close:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+
+.card-steps-floating-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-subtle);
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .card-step-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px;
+  padding: 5px 6px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -2112,12 +2181,13 @@
   height: 16px;
   margin-top: 0;
   border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .card-step-text {
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  line-height: 1.25;
+  line-height: 1.3;
   transition: all var(--transition-fast);
   word-break: break-word;
 }
