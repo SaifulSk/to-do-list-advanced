@@ -959,3 +959,4 @@ export const EventTasksView = ({
     </div>
   );
 };
+

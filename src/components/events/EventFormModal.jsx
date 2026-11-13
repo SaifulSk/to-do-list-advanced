@@ -388,3 +388,4 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
 
   return typeof document !== 'undefined' ? createPortal(modalJSX, document.body) : null;
 };
+
