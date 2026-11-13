@@ -20,10 +20,13 @@ import {
   ChevronUp,
   PauseCircle,
   PlayCircle,
-  FolderKanban
+  FolderKanban,
+  FolderInput,
+  FolderOutput
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
+import { MoveTaskEventModal } from '../events/MoveTaskEventModal';
 
 export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
   const { 
@@ -52,6 +55,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
 
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
   const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
+  const [moveTargetTask, setMoveTargetTask] = useState(null);
 
   // Close floating steps popover on click outside
   useEffect(() => {
@@ -511,6 +515,15 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
                       </button>
                     )}
                     <button 
+                      type="button"
+                      className="btn-icon" 
+                      style={{ width: '28px', height: '28px', color: task.eventId ? 'var(--primary)' : 'var(--text-muted)' }} 
+                      onClick={() => setMoveTargetTask(task)}
+                      title={task.eventId ? "Change or remove from Event Folder" : "Move into an Event Folder"}
+                    >
+                      {task.eventId ? <FolderOutput size={13} /> : <FolderInput size={13} />}
+                    </button>
+                    <button 
                       className="btn-icon" 
                       style={{ width: '28px', height: '28px' }} 
                       onClick={() => onEditTask(task)}
@@ -599,6 +612,14 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
         </div>,
         document.body
       )}
+
+      {/* Move Task to/from Event Modal */}
+      <MoveTaskEventModal
+        isOpen={Boolean(moveTargetTask)}
+        onClose={() => setMoveTargetTask(null)}
+        task={moveTargetTask}
+        onOpenNewEvent={onOpenNewTask}
+      />
     </div>
   );
 };

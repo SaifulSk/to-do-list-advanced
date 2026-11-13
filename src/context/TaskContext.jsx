@@ -926,13 +926,13 @@ export const TaskProvider = ({ children }) => {
     });
   };
 
-  // Segmentation: Normal vs Recurring vs Event tasks
+  // Segmentation: Normal vs Recurring vs Event tasks (tasks inside event folders are scoped to their event)
   const normalTasks = useMemo(() => {
-    return tasks.filter((t) => !t.isEvent && (!t.recurrence || t.recurrence === 'none'));
+    return tasks.filter((t) => !t.isEvent && !t.eventId && (!t.recurrence || t.recurrence === 'none'));
   }, [tasks]);
 
   const recurringTasks = useMemo(() => {
-    return tasks.filter((t) => !t.isEvent && t.recurrence && t.recurrence !== 'none');
+    return tasks.filter((t) => !t.isEvent && !t.eventId && t.recurrence && t.recurrence !== 'none');
   }, [tasks]);
 
   const eventTasks = useMemo(() => {

@@ -124,7 +124,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
       <div 
         className="modal-dialog" 
-        style={{ maxWidth: '580px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} 
+        style={{ maxWidth: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -132,17 +132,17 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
           <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div 
               style={{ 
-                width: '28px', 
-                height: '28px', 
+                width: '30px', 
+                height: '30px', 
                 borderRadius: '8px', 
-                background: `${selectedColor}20`, 
+                background: `${selectedColor}18`, 
                 color: selectedColor, 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center' 
               }}
             >
-              <FolderKanban size={16} />
+              <FolderKanban size={17} />
             </div>
             <span>{initialEvent ? 'Edit Event Task' : 'Create New Event Task'}</span>
           </div>
@@ -162,7 +162,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
               </label>
               <input 
                 type="text" 
-                className="form-input" 
+                className="input" 
                 placeholder="e.g. Sister's Wedding, Tech Conference 2026, Website Redesign..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -175,17 +175,17 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
             <div className="form-group">
               <label className="form-label">Description / Event Notes</label>
               <textarea 
-                className="form-input" 
+                className="textarea" 
                 placeholder="Key goals, location, venue details, or overview for this event folder..."
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                style={{ resize: 'vertical' }}
+                style={{ resize: 'vertical', minHeight: '75px' }}
               />
             </div>
 
             {/* Date Range: Start Date & End Date */}
-            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="form-row-2col">
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Calendar size={13} color="var(--primary)" />
@@ -193,7 +193,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
                 </label>
                 <input 
                   type="date" 
-                  className="form-input"
+                  className="input"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
@@ -206,7 +206,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
                 </label>
                 <input 
                   type="date" 
-                  className="form-input"
+                  className="input"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
@@ -214,19 +214,19 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
             </div>
 
             {/* Priority & Budget */}
-            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="form-row-2col">
               {/* Priority */}
               <div className="form-group">
                 <label className="form-label">Priority</label>
                 <select 
-                  className="form-input"
+                  className="select"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 >
-                  <option value="low">Low Priority</option>
-                  <option value="medium">Medium Priority</option>
-                  <option value="high">High Priority</option>
-                  <option value="urgent">Urgent Priority</option>
+                  <option value="low">⬇️ Low Priority</option>
+                  <option value="medium">⏱️ Medium Priority</option>
+                  <option value="high">⚠️ High Priority</option>
+                  <option value="urgent">🔥 Urgent Priority</option>
                 </select>
               </div>
 
@@ -236,15 +236,14 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
                   <Banknote size={13} color="var(--primary)" />
                   <span>Total Budget (Optional)</span>
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₹</span>
+                <div className="input-with-symbol">
+                  <span className="input-symbol">₹</span>
                   <input 
                     type="number"
                     min="0"
                     step="any"
-                    className="form-input" 
+                    className="input input-with-symbol-field" 
                     placeholder="e.g. 50000"
-                    style={{ paddingLeft: '26px' }}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
@@ -254,7 +253,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
 
             {/* Event Lead / Assignee */}
             <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
                 <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Users size={13} color="var(--primary)" />
                   <span>Event Lead / Organizer (Optional)</span>
@@ -273,7 +272,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
 
               {!isCustomAssignee ? (
                 <select 
-                  className="form-input"
+                  className="select"
                   value={assignedName}
                   onChange={(e) => {
                     if (e.target.value === '__custom__') {
@@ -290,16 +289,17 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
                       {a.name} {a.role ? `(${a.role})` : ''}
                     </option>
                   ))}
-                  <option value="__custom__">+ Enter Custom Name...</option>
+                  <option value="__custom__">✏️ Enter custom name...</option>
                 </select>
               ) : (
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <input 
                     type="text" 
-                    className="form-input" 
+                    className="input" 
                     placeholder="Enter organizer's name..."
                     value={assignedName}
                     onChange={(e) => setAssignedName(e.target.value)}
+                    autoFocus
                   />
                   <button 
                     type="button" 
@@ -317,7 +317,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
 
             {/* Folder Theme Accent Color */}
             <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                 <Palette size={13} color="var(--primary)" />
                 <span>Folder Color Theme</span>
               </label>
@@ -332,18 +332,18 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
                       height: '32px',
                       borderRadius: '50%',
                       background: color.value,
-                      border: selectedColor === color.value ? '3px solid var(--text-main)' : '2px solid transparent',
-                      boxShadow: selectedColor === color.value ? '0 0 0 2px var(--bg-surface)' : 'none',
+                      border: selectedColor === color.value ? '2px solid #ffffff' : '2px solid transparent',
+                      boxShadow: selectedColor === color.value ? `0 0 0 2px ${color.value}, 0 2px 8px ${color.value}66` : 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#ffffff',
-                      transition: 'transform var(--transition-fast)'
+                      transition: 'all var(--transition-fast)'
                     }}
                     title={color.label}
                   >
-                    {selectedColor === color.value && <Check size={14} />}
+                    {selectedColor === color.value && <Check size={15} strokeWidth={3} />}
                   </button>
                 ))}
               </div>
@@ -357,7 +357,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
               </label>
               <input 
                 type="text" 
-                className="form-input" 
+                className="input" 
                 placeholder="e.g. wedding, travel, q4, milestone"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
@@ -375,7 +375,7 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
               type="submit" 
               className="btn btn-primary"
               disabled={!title.trim()}
-              style={{ background: selectedColor, borderColor: selectedColor }}
+              style={{ background: selectedColor, borderColor: selectedColor, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <FolderKanban size={15} />
               <span>{initialEvent ? 'Save Changes' : 'Create Event'}</span>
@@ -388,4 +388,3 @@ export const EventFormModal = ({ isOpen, onClose, initialEvent, onOpenAssigneeMa
 
   return typeof document !== 'undefined' ? createPortal(modalJSX, document.body) : null;
 };
-

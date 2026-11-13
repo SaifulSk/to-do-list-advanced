@@ -38,7 +38,7 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
     const map = {};
 
     if (taskTypeTab === 'recurring') {
-      const recurringTasks = tasks.filter((t) => !t.isEvent && t.recurrence && t.recurrence !== 'none');
+      const recurringTasks = tasks.filter((t) => !t.isEvent && !t.eventId && t.recurrence && t.recurrence !== 'none');
       calendarDays.forEach((day) => {
         const dayKey = format(day, 'yyyy-MM-dd');
         recurringTasks.forEach((task) => {
@@ -69,7 +69,7 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
       return map;
     }
 
-    const normalTasks = tasks.filter((t) => !t.isEvent && (!t.recurrence || t.recurrence === 'none'));
+    const normalTasks = tasks.filter((t) => !t.isEvent && !t.eventId && (!t.recurrence || t.recurrence === 'none'));
     normalTasks.forEach((task) => {
       // 1. Task Created Date
       if (task.createdAt) {

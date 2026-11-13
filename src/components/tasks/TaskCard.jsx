@@ -21,10 +21,13 @@ import {
   ChevronUp,
   PauseCircle,
   PlayCircle,
-  FolderKanban
+  FolderKanban,
+  FolderInput,
+  FolderOutput
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
+import { MoveTaskEventModal } from '../events/MoveTaskEventModal';
 
 export const TaskCard = ({ task, onEdit }) => {
   const { 
@@ -41,6 +44,7 @@ export const TaskCard = ({ task, onEdit }) => {
   } = useTasks();
   const parentEvent = task.eventId ? eventTasks?.find(e => e.id === task.eventId) : null;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const [isStepsOpen, setIsStepsOpen] = useState(false);
   const stepsMenuRef = useRef(null);
 
@@ -171,6 +175,16 @@ export const TaskCard = ({ task, onEdit }) => {
                 <span>{task.isRecurringStopped ? 'Resume' : 'Stop'}</span>
               </button>
             )}
+            <button 
+              type="button"
+              className="btn-icon" 
+              style={{ width: '28px', height: '28px', color: task.eventId ? 'var(--primary)' : 'var(--text-muted)' }} 
+              onClick={() => setShowMoveModal(true)}
+              title={task.eventId ? `Change or remove from Event Folder (${parentEvent?.title || 'Event'})` : "Move into an Event Folder"}
+              aria-label="Move task to event folder"
+            >
+              {task.eventId ? <FolderOutput size={13} /> : <FolderInput size={13} />}
+            </button>
             <button 
               className="btn-icon" 
               style={{ width: '28px', height: '28px' }} 
@@ -524,6 +538,13 @@ export const TaskCard = ({ task, onEdit }) => {
         </div>,
         document.body
       )}
+
+      {/* Move Task to/from Event Modal */}
+      <MoveTaskEventModal
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        task={task}
+      />
     </div>
   );
 };

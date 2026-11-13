@@ -22,10 +22,13 @@ import {
   PlayCircle, 
   PauseCircle, 
   X, 
-  AlertCircle 
+  AlertCircle,
+  FolderInput,
+  FolderOutput 
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
+import { MoveTaskEventModal } from './MoveTaskEventModal';
 
 export const EventTasksView = ({ 
   onEditEvent, 
@@ -64,6 +67,9 @@ export const EventTasksView = ({
   // Delete event confirmation state
   const [deleteTargetEvent, setDeleteTargetEvent] = useState(null);
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
+
+  // Move task to/from event modal state
+  const [moveTargetTask, setMoveTargetTask] = useState(null);
 
   // Toggle expanding an event folder
   const toggleExpand = (eventId) => {
@@ -249,18 +255,22 @@ export const EventTasksView = ({
             return true;
           });
 
+          const isMenuOpenInFolder = Boolean(activeStepsKey && activeStepsKey.startsWith(`${event.id}-`));
+
           return (
             <div 
               key={event.id}
-              className={`event-folder-card ${isExpanded ? 'expanded' : ''}`}
+              className={`event-folder-card ${isExpanded ? 'expanded' : ''} ${isMenuOpenInFolder ? 'has-floating-menu-open' : ''}`}
               style={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
                 boxShadow: 'var(--shadow-sm)',
-                overflow: 'hidden',
+                overflow: 'visible',
                 transition: 'all var(--transition-fast)',
-                borderLeft: `5px solid ${accentColor}`
+                borderLeft: `5px solid ${accentColor}`,
+                position: 'relative',
+                zIndex: isMenuOpenInFolder ? 60 : 1
               }}
             >
               {/* Event Folder Header */}
@@ -274,6 +284,8 @@ export const EventTasksView = ({
                   gap: '12px',
                   cursor: 'pointer',
                   userSelect: 'none',
+                  borderTopLeftRadius: 'var(--radius-lg)',
+                  borderTopRightRadius: 'var(--radius-lg)',
                   background: isExpanded ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
                   transition: 'background var(--transition-fast)'
                 }}
@@ -458,7 +470,10 @@ export const EventTasksView = ({
                     background: 'var(--bg-app)', 
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: '12px' 
+                    gap: '12px',
+                    overflow: 'visible',
+                    borderBottomLeftRadius: 'var(--radius-lg)',
+                    borderBottomRightRadius: 'var(--radius-lg)'
                   }}
                 >
                   {/* Shelf Controls: Sub-filters + Add Buttons */}
@@ -607,7 +622,9 @@ export const EventTasksView = ({
                               padding: '10px 14px', 
                               cursor: 'default',
                               background: 'var(--bg-surface)',
-                              borderRadius: 'var(--radius-md)'
+                              borderRadius: 'var(--radius-md)',
+                              position: 'relative',
+                              zIndex: isStepsOpen ? 80 : 1
                             }}
                           >
                             {/* Checkbox */}
@@ -671,6 +688,16 @@ export const EventTasksView = ({
                                       <span>{task.isRecurringStopped ? 'Resume' : 'Stop'}</span>
                                     </button>
                                   )}
+
+                                  <button 
+                                    type="button"
+                                    className="btn-icon" 
+                                    style={{ width: '26px', height: '26px', color: 'var(--primary)' }} 
+                                    onClick={() => setMoveTargetTask(task)}
+                                    title="Move to another Event or remove from this Event"
+                                  >
+                                    <FolderOutput size={13} />
+                                  </button>
 
                                   <button 
                                     type="button"
@@ -955,6 +982,14 @@ export const EventTasksView = ({
           </div>
         </div>
       )}
+
+      {/* Move Task to/from Event Modal */}
+      <MoveTaskEventModal
+        isOpen={Boolean(moveTargetTask)}
+        onClose={() => setMoveTargetTask(null)}
+        task={moveTargetTask}
+        onOpenNewEvent={onOpenNewEvent}
+      />
 
     </div>
   );

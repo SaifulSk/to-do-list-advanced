@@ -19,10 +19,13 @@ import {
   PlayCircle, 
   PauseCircle, 
   ChevronDown, 
-  ChevronUp 
+  ChevronUp,
+  FolderInput,
+  FolderOutput
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
+import { MoveTaskEventModal } from '../events/MoveTaskEventModal';
 
 export const CalendarDayModal = ({ 
   isOpen, 
@@ -44,6 +47,7 @@ export const CalendarDayModal = ({
 
   const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
+  const [moveTargetTask, setMoveTargetTask] = useState(null);
 
   // Close floating subtasks menu when clicking outside
   useEffect(() => {
@@ -134,6 +138,18 @@ export const CalendarDayModal = ({
                   <span>{currentTask.isRecurringStopped ? 'Resume' : 'Stop'}</span>
                 </button>
               )}
+              <button 
+                type="button"
+                className="btn-icon" 
+                style={{ width: '28px', height: '28px', color: currentTask.eventId ? 'var(--primary)' : 'var(--text-muted)' }} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMoveTargetTask(currentTask);
+                }}
+                title={currentTask.eventId ? "Change or remove from Event Folder" : "Move into an Event Folder"}
+              >
+                {currentTask.eventId ? <FolderOutput size={13} /> : <FolderInput size={13} />}
+              </button>
               <button 
                 type="button"
                 className="btn-icon" 
@@ -517,6 +533,13 @@ export const CalendarDayModal = ({
           </div>
         </div>
       )}
+
+      {/* Move Task to/from Event Modal */}
+      <MoveTaskEventModal
+        isOpen={Boolean(moveTargetTask)}
+        onClose={() => setMoveTargetTask(null)}
+        task={moveTargetTask}
+      />
     </div>
   );
 

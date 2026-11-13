@@ -161,7 +161,7 @@ function MainLayout() {
                 onClick={() => setTaskTypeTab('normal')}
                 title="Normal Tasks"
               >
-                <CheckSquare size={15} />
+                <span className="task-type-tab-icon"><CheckSquare size={15} /></span>
                 <span className="task-type-label-desktop">Normal Tasks</span>
                 <span className="task-type-label-mobile">Normal</span>
                 <span className="task-type-badge">{normalTasks.length}</span>
@@ -193,7 +193,7 @@ function MainLayout() {
                 onClick={() => setTaskTypeTab('recurring')}
                 title="Recurring Tasks"
               >
-                <Repeat size={15} />
+                <span className="task-type-tab-icon"><Repeat size={15} /></span>
                 <span className="task-type-label-desktop">Recurring Tasks</span>
                 <span className="task-type-label-mobile">Recurring</span>
                 <span className="task-type-badge">{recurringTasks.length}</span>
@@ -225,7 +225,7 @@ function MainLayout() {
                 onClick={() => setTaskTypeTab('event')}
                 title="Event Tasks (Folders)"
               >
-                <FolderKanban size={15} />
+                <span className="task-type-tab-icon"><FolderKanban size={15} /></span>
                 <span className="task-type-label-desktop">Event Tasks</span>
                 <span className="task-type-label-mobile">Events</span>
                 <span className="task-type-badge">{eventTasks.length}</span>
