@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  FolderKanban
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -29,6 +30,7 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
     filteredTasks, 
     tasks, 
     taskTypeTab,
+    eventTasks,
     toggleTaskComplete, 
     toggleRecurringDateComplete,
     recurringDate,
@@ -222,7 +224,32 @@ export const TaskTableView = ({ onEditTask, onOpenNewTask }) => {
 
                 {/* Title & Description */}
                 <td>
-                  <div className="table-task-title">{task.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span className="table-task-title">{task.title}</span>
+                    {task.eventId && (() => {
+                      const parentEvent = eventTasks?.find(e => e.id === task.eventId);
+                      if (!parentEvent) return null;
+                      return (
+                        <span 
+                          className="badge" 
+                          style={{ 
+                            fontSize: '0.625rem', 
+                            padding: '1px 5px',
+                            background: `${parentEvent.color || '#6366f1'}15`, 
+                            color: parentEvent.color || '#6366f1',
+                            border: `1px solid ${parentEvent.color || '#6366f1'}35`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                          title={`Part of Event Folder: ${parentEvent.title}`}
+                        >
+                          <FolderKanban size={9} />
+                          <span>{parentEvent.title}</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
                   {task.description && (
                     <div className="table-task-desc" title={task.description}>
                       {task.description}

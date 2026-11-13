@@ -65,6 +65,7 @@ export const CalendarDayModal = ({
   const recurringTasks = tasksForDay.filter((item) => item.type === 'recurring');
   const createdTasks = tasksForDay.filter((item) => item.type === 'created');
   const dueTasks = tasksForDay.filter((item) => item.type === 'due');
+  const eventTasksForDay = tasksForDay.filter((item) => item.type === 'event');
 
   const renderTaskCard = (item) => {
     // Lookup latest task state from context
@@ -381,6 +382,22 @@ export const CalendarDayModal = ({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {recurringTasks.map((item) => renderTaskCard(item))}
+              </div>
+            </div>
+          )}
+
+          {/* Event Tasks For This Day */}
+          {eventTasksForDay.length > 0 && (
+            <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div className="legend-dot" style={{ background: '#ec4899' }} />
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#ec4899', margin: 0 }}>
+                  Event Tasks on this day ({eventTasksForDay.length})
+                </h4>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {eventTasksForDay.map((item) => renderTaskCard(item))}
               </div>
             </div>
           )}

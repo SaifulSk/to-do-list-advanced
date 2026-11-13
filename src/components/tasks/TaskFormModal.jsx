@@ -19,18 +19,28 @@ import {
   PauseCircle,
   PlayCircle,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  FolderKanban
 } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { useTasks, getRecurrenceLabel } from '../../context/TaskContext';
 
-export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpenAssigneeMaster }) => {
-  const { addTask, updateTask, assignees } = useTasks();
+export const TaskFormModal = ({ 
+  isOpen, 
+  onClose, 
+  initialTask, 
+  defaultDate, 
+  defaultEventId = null,
+  defaultIsRecurring = false,
+  onOpenAssigneeMaster 
+}) => {
+  const { addTask, updateTask, assignees, eventTasks } = useTasks();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
+  const [eventId, setEventId] = useState('');
   
   // Recurrence & Amount fields
   const [recurrence, setRecurrence] = useState('none');
@@ -129,6 +139,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         }
 
         setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
+        setEventId(initialTask.eventId || defaultEventId || '');
       } else {
         // New task default state
         const now = new Date();
@@ -137,7 +148,8 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
         setDescription('');
         setPriority('medium');
         setDueDate(defaultDate || '');
-        setRecurrence('none');
+        setRecurrence(defaultIsRecurring ? 'weekly' : 'none');
+        setEventId(defaultEventId || '');
         setRecurrenceInterval(1);
         setRecurrenceUnit('days');
         setRecurrenceDaysOfWeek(['friday']);
@@ -371,6 +383,7 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
             topic: helperTopic.trim() || '' // Never pass undefined to Firestore
           }
         : null,
+      eventId: eventId ? eventId.trim() : null,
       tags
     };
 
@@ -628,6 +641,28 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                 />
               </div>
             </div>
+
+            {/* Belongs to Event Folder (Optional) */}
+            {eventTasks && eventTasks.length > 0 && (
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <FolderKanban size={14} color="var(--primary)" />
+                  <span>Belongs to Event Folder (Optional)</span>
+                </label>
+                <select
+                  className="select"
+                  value={eventId}
+                  onChange={(e) => setEventId(e.target.value)}
+                >
+                  <option value="">None (Standalone Task)</option>
+                  {eventTasks.map((evt) => (
+                    <option key={evt.id} value={evt.id}>
+                      📁 {evt.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Recurrence & Amount side by side */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>

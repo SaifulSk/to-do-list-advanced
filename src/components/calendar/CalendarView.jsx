@@ -38,7 +38,7 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
     const map = {};
 
     if (taskTypeTab === 'recurring') {
-      const recurringTasks = tasks.filter((t) => t.recurrence && t.recurrence !== 'none');
+      const recurringTasks = tasks.filter((t) => !t.isEvent && t.recurrence && t.recurrence !== 'none');
       calendarDays.forEach((day) => {
         const dayKey = format(day, 'yyyy-MM-dd');
         recurringTasks.forEach((task) => {
@@ -51,7 +51,25 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
       return map;
     }
 
-    const normalTasks = tasks.filter((t) => !t.recurrence || t.recurrence === 'none');
+    if (taskTypeTab === 'event') {
+      const eventTasks = tasks.filter((t) => t.isEvent);
+      eventTasks.forEach((event) => {
+        const startKey = event.startDate ? event.startDate.split('T')[0] : null;
+        const endKey = (event.endDate || event.dueDate) ? (event.endDate || event.dueDate).split('T')[0] : null;
+
+        if (startKey) {
+          if (!map[startKey]) map[startKey] = [];
+          map[startKey].push({ type: 'event', task: event });
+        }
+        if (endKey && endKey !== startKey) {
+          if (!map[endKey]) map[endKey] = [];
+          map[endKey].push({ type: 'event', task: event });
+        }
+      });
+      return map;
+    }
+
+    const normalTasks = tasks.filter((t) => !t.isEvent && (!t.recurrence || t.recurrence === 'none'));
     normalTasks.forEach((task) => {
       // 1. Task Created Date
       if (task.createdAt) {
@@ -216,7 +234,7 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
                       className={`calendar-event-pill ${item.type} ${isDoneOnDay ? 'completed' : ''}`}
                     >
                       <span className="event-tag">
-                        {item.type === 'due' ? 'DUE' : item.type === 'recurring' ? (item.task.recurrence || 'REC').toUpperCase() : 'NEW'}
+                        {item.type === 'due' ? 'DUE' : item.type === 'recurring' ? (item.task.recurrence || 'REC').toUpperCase() : item.type === 'event' ? 'EVENT' : 'NEW'}
                       </span>
                       <span className="event-text">
                         {item.task.title}

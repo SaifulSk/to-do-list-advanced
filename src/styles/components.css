@@ -2753,4 +2753,98 @@
   color: var(--text-main);
 }
 
+/* ==========================================================================
+   Event Tasks & Folders System
+   ========================================================================== */
+
+.event-tasks-container {
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.event-folder-card {
+  position: relative;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.event-folder-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-border);
+}
+
+.event-folder-card.expanded {
+  box-shadow: var(--shadow-md);
+}
+
+.event-folder-header:hover {
+  background: var(--bg-hover) !important;
+}
+
+.event-folder-progress-bar-wrap {
+  position: relative;
+}
+
+.event-folder-body {
+  border-top: 1px solid var(--border-subtle);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.event-subtasks-shelf {
+  position: relative;
+}
+
+/* Event Tag in Calendar Event Pill */
+.calendar-event-pill.event {
+  background: rgba(236, 72, 153, 0.12);
+  border-color: rgba(236, 72, 153, 0.3);
+  color: #db2777;
+}
+
+.calendar-event-pill.event .event-tag {
+  background: #db2777;
+  color: #ffffff;
+}
+
+/* Responsive adjustments for Event Tasks */
+@media (max-width: 768px) {
+  .event-folder-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .event-header-actions {
+    justify-content: flex-end;
+    width: 100%;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 8px;
+  }
+
+  .event-subtasks-shelf {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .event-action-text {
+    display: inline;
+  }
+
+  .task-type-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+
+  .task-type-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .task-type-tab {
+    flex-shrink: 0;
+    padding: 7px 12px;
+  }
+}
+
 

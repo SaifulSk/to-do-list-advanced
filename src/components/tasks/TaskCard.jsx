@@ -20,7 +20,8 @@ import {
   ChevronDown,
   ChevronUp,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  FolderKanban
 } from 'lucide-react';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -35,8 +36,10 @@ export const TaskCard = ({ task, onEdit }) => {
     toggleStopRecurrence,
     toggleRecurringDateComplete,
     recurringDate,
-    getRecurrenceLabel 
+    getRecurrenceLabel,
+    eventTasks 
   } = useTasks();
+  const parentEvent = task.eventId ? eventTasks?.find(e => e.id === task.eventId) : null;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isStepsOpen, setIsStepsOpen] = useState(false);
   const stepsMenuRef = useRef(null);
@@ -421,6 +424,26 @@ export const TaskCard = ({ task, onEdit }) => {
                 {task.needHelpFrom.topic ? `: ${task.needHelpFrom.topic}` : ''}
               </span>
             </div>
+          )}
+
+          {/* Parent Event Folder Badge */}
+          {parentEvent && (
+            <span 
+              className="badge" 
+              style={{ 
+                fontSize: '0.6875rem', 
+                background: `${parentEvent.color || '#6366f1'}15`, 
+                color: parentEvent.color || '#6366f1',
+                border: `1px solid ${parentEvent.color || '#6366f1'}35`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title={`Part of Event Folder: ${parentEvent.title}`}
+            >
+              <FolderKanban size={10} />
+              <span>{parentEvent.title}</span>
+            </span>
           )}
 
           {/* Tags */}
