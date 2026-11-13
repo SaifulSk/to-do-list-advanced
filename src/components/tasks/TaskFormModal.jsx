@@ -17,7 +17,9 @@ import {
   Trash2, 
   Check,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { useTasks, getRecurrenceLabel } from '../../context/TaskContext';
@@ -182,6 +184,30 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
   // Remove a step
   const handleRemoveStep = (stepId) => {
     setSteps((prev) => prev.filter((s) => s.id !== stepId));
+  };
+
+  // Move step up
+  const handleMoveStepUp = (index) => {
+    if (index <= 0) return;
+    setSteps((prev) => {
+      const updated = [...prev];
+      const temp = updated[index - 1];
+      updated[index - 1] = updated[index];
+      updated[index] = temp;
+      return updated;
+    });
+  };
+
+  // Move step down
+  const handleMoveStepDown = (index) => {
+    if (index >= steps.length - 1) return;
+    setSteps((prev) => {
+      const updated = [...prev];
+      const temp = updated[index + 1];
+      updated[index + 1] = updated[index];
+      updated[index] = temp;
+      return updated;
+    });
   };
 
   // Toggle step completion inside modal
@@ -486,15 +512,52 @@ export const TaskFormModal = ({ isOpen, onClose, initialTask, defaultDate, onOpe
                           </div>
                           <span className="form-step-index">{index + 1}.</span>
                           <span className="form-step-text">{step.title}</span>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            style={{ width: '24px', height: '24px', color: 'var(--text-muted)' }}
-                            onClick={() => handleRemoveStep(step.id)}
-                            title="Remove step"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          <div className="form-step-actions">
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              style={{ 
+                                width: '24px', 
+                                height: '24px', 
+                                color: index === 0 ? 'var(--text-disabled)' : 'var(--text-muted)',
+                                cursor: index === 0 ? 'not-allowed' : 'pointer',
+                                opacity: index === 0 ? 0.3 : 1
+                              }}
+                              disabled={index === 0}
+                              onClick={() => handleMoveStepUp(index)}
+                              title={index === 0 ? "First step" : "Move step up"}
+                              aria-label="Move step up"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              style={{ 
+                                width: '24px', 
+                                height: '24px', 
+                                color: index === steps.length - 1 ? 'var(--text-disabled)' : 'var(--text-muted)',
+                                cursor: index === steps.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: index === steps.length - 1 ? 0.3 : 1
+                              }}
+                              disabled={index === steps.length - 1}
+                              onClick={() => handleMoveStepDown(index)}
+                              title={index === steps.length - 1 ? "Last step" : "Move step down"}
+                              aria-label="Move step down"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-icon delete-btn"
+                              style={{ width: '24px', height: '24px', color: 'var(--priority-urgent)' }}
+                              onClick={() => handleRemoveStep(step.id)}
+                              title="Remove step"
+                              aria-label="Remove step"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       <div className="form-steps-summary">

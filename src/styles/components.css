@@ -2017,6 +2017,31 @@
   word-break: break-word;
 }
 
+.form-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.form-step-actions .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.form-step-actions .btn-icon:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--primary);
+}
+
+.form-step-actions .btn-icon.delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--priority-urgent);
+}
+
 .form-steps-summary {
   display: flex;
   align-items: center;
