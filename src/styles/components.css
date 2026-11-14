@@ -2125,8 +2125,9 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  right: 0;
   min-width: 260px;
+  max-width: min(340px, 90vw);
+  width: max-content;
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
@@ -2260,7 +2261,8 @@
   top: calc(100% + 6px);
   left: 0;
   min-width: 260px;
-  max-width: 340px;
+  max-width: min(340px, 90vw);
+  width: max-content;
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
@@ -2826,10 +2828,25 @@
   background: var(--bg-hover) !important;
 }
 
+.event-table-expanded-row {
+  position: relative;
+  overflow: visible !important;
+}
+
 .event-table-expanded-row td {
   padding: 10px 18px !important;
   background: var(--bg-app) !important;
   border-bottom: 1px solid var(--border-subtle);
+  overflow: visible !important;
+}
+
+.event-table-subtask-item {
+  position: relative;
+  transition: z-index 0.1s ease;
+}
+
+.event-table-subtask-item.has-floating-menu-open {
+  z-index: 45 !important;
 }
 
 .nav-new-event-btn {

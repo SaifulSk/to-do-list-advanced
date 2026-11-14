@@ -76,13 +76,7 @@ export const TaskTableView = ({
     });
   };
 
-  const [expandedSubtaskStepIds, setExpandedSubtaskStepIds] = useState({});
-  const toggleSubtaskSteps = (subId) => {
-    setExpandedSubtaskStepIds((prev) => ({
-      ...prev,
-      [subId]: !prev[subId]
-    }));
-  };
+
 
   // Close floating steps popover on click outside
   useEffect(() => {
@@ -482,25 +476,27 @@ export const TaskTableView = ({
                                 : 0;
                               const subStepsTotalCount = hasSubSteps ? sub.steps.length : 0;
                               const subStepsPct = subStepsTotalCount > 0 ? Math.round((subStepsCompletedCount / subStepsTotalCount) * 100) : 0;
-                              const isSubStepsOpen = Boolean(expandedSubtaskStepIds[sub.id]);
+                              const isSubStepsOpen = activeStepsTaskId === sub.id;
 
                               return (
                                 <div 
                                   key={sub.id}
+                                  className={`event-table-subtask-item ${isSubStepsOpen ? 'has-floating-menu-open' : ''}`}
                                   style={{
                                     display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px',
-                                    padding: '10px 12px',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '12px',
+                                    padding: '8px 12px',
                                     background: 'var(--bg-surface)',
                                     borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid var(--border-subtle)'
+                                    border: '1px solid var(--border-subtle)',
+                                    position: 'relative',
+                                    zIndex: isSubStepsOpen ? 45 : 1
                                   }}
                                 >
-                                  {/* Top Row: Checkbox, Title & Actions */}
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                  {/* Left: Checkbox & Title */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                                  {/* Left: Checkbox, Title & Compact Steps Dropdown (SAME AS NORMAL/RECURRING TASKS) */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
                                     <div 
                                       className={`custom-checkbox ${isSubDone ? 'checked' : ''}`}
                                       onClick={() => {
@@ -522,6 +518,86 @@ export const TaskTableView = ({
                                         {sub.title}
                                       </span>
                                     </div>
+
+                                    {/* Multi-Step Checklist for Table View (SAME AS NORMAL/RECURRING TASKS) */}
+                                    {hasSubSteps && (
+                                      <div className={`table-steps-container ${isSubStepsOpen ? 'menu-open' : ''}`} style={{ margin: 0 }}>
+                                        <button
+                                          type="button"
+                                          className="table-steps-toggle-btn"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveStepsTaskId((prev) => (prev === sub.id ? null : sub.id));
+                                          }}
+                                          title={isSubStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
+                                        >
+                                          <ListChecks size={12} color="var(--primary)" />
+                                          <span>{subStepsCompletedCount}/{subStepsTotalCount} steps ({subStepsPct}%)</span>
+                                          {isSubStepsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                        </button>
+
+                                        {/* Floating Menu Popover */}
+                                        {isSubStepsOpen && (
+                                          <div 
+                                            className="table-steps-floating-menu"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <div className="card-steps-floating-header">
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <ListChecks size={13} color="var(--primary)" />
+                                                <span className="card-steps-floating-title">Subtasks</span>
+                                                <span className={`card-steps-pill ${subStepsPct === 100 ? 'done' : ''}`}>
+                                                  {subStepsCompletedCount}/{subStepsTotalCount} ({subStepsPct}%)
+                                                </span>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                className="btn-icon card-steps-floating-close"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveStepsTaskId(null);
+                                                }}
+                                                title="Close"
+                                                aria-label="Close subtasks menu"
+                                              >
+                                                <X size={13} />
+                                              </button>
+                                            </div>
+
+                                            <div className="card-steps-floating-list">
+                                              {sub.steps.map((step, idx) => {
+                                                const isStepDone = isSubRec
+                                                  ? Boolean(sub.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                                                  : Boolean(step.completed);
+
+                                                return (
+                                                  <div
+                                                    key={step.id || idx}
+                                                    className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (isSubRec) {
+                                                        toggleTaskStep(sub.id, step.id, recurringDate);
+                                                      } else {
+                                                        toggleTaskStep(sub.id, step.id);
+                                                      }
+                                                    }}
+                                                  >
+                                                    <div
+                                                      className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                                                      title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                                    >
+                                                      {isStepDone && <Check size={10} />}
+                                                    </div>
+                                                    <span className="card-step-text">{step.title}</span>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Right: Badges & Actions */}
@@ -563,7 +639,7 @@ export const TaskTableView = ({
                                     </button>
 
                                     <button 
-                                      type="button"
+                                      type="button" 
                                       className="btn-icon" 
                                       style={{ width: '24px', height: '24px', color: 'var(--priority-urgent)' }} 
                                       onClick={() => deleteTask(sub.id)}
@@ -572,100 +648,6 @@ export const TaskTableView = ({
                                       <Trash2 size={12} />
                                     </button>
                                   </div>
-                                </div>
-
-                                  {/* Description if present */}
-                                  {sub.description && (
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingLeft: '22px' }}>
-                                      {sub.description}
-                                    </div>
-                                  )}
-
-                                  {/* Multi-step subtasks checklist */}
-                                  {hasSubSteps && (
-                                    <div style={{ marginTop: '4px', paddingTop: '6px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                      <div 
-                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleSubtaskSteps(sub.id);
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                          <ListChecks size={12} color="var(--primary)" />
-                                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                                            Steps ({subStepsCompletedCount}/{subStepsTotalCount})
-                                          </span>
-                                          <span className={`card-steps-pill ${subStepsPct === 100 ? 'done' : ''}`} style={{ fontSize: '0.625rem', padding: '1px 5px' }}>
-                                            {subStepsPct}%
-                                          </span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                                          <span>{isSubStepsOpen ? 'Hide' : 'View steps'}</span>
-                                          {isSubStepsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                        </div>
-                                      </div>
-
-                                      {/* Progress Bar */}
-                                      <div className="card-steps-bar-track" style={{ height: '3px', background: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
-                                        <div 
-                                          className="card-steps-bar-fill"
-                                          style={{
-                                            width: `${subStepsPct}%`,
-                                            background: subStepsPct === 100 ? '#10b981' : 'var(--primary)',
-                                            height: '100%',
-                                            transition: 'width 0.3s ease'
-                                          }}
-                                        />
-                                      </div>
-
-                                      {/* Expanded Steps List */}
-                                      {isSubStepsOpen && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px', paddingLeft: '2px' }}>
-                                          {sub.steps.map((step, idx) => {
-                                            const isStepDone = isSubRec
-                                              ? Boolean(sub.completedStepsByDate?.[recurringDate]?.includes(step.id))
-                                              : Boolean(step.completed);
-
-                                            return (
-                                              <div
-                                                key={step.id || idx}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  if (isSubRec) {
-                                                    toggleTaskStep(sub.id, step.id, recurringDate);
-                                                  } else {
-                                                    toggleTaskStep(sub.id, step.id);
-                                                  }
-                                                }}
-                                                style={{
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '8px',
-                                                  padding: '4px 6px',
-                                                  borderRadius: 'var(--radius-sm)',
-                                                  cursor: 'pointer',
-                                                  background: isStepDone ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-app)',
-                                                  border: '1px solid var(--border-subtle)'
-                                                }}
-                                              >
-                                                <div 
-                                                  className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                                                  title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
-                                                  style={{ width: '14px', height: '14px', flexShrink: 0 }}
-                                                >
-                                                  {isStepDone && <Check size={10} />}
-                                                </div>
-                                                <span style={{ fontSize: '0.75rem', color: isStepDone ? 'var(--text-muted)' : 'var(--text-main)', textDecoration: isStepDone ? 'line-through' : 'none' }}>
-                                                  {step.title}
-                                                </span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
                                 </div>
                               );
                             })
