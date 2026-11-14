@@ -29,7 +29,7 @@ import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 import { MoveTaskEventModal } from '../events/MoveTaskEventModal';
 
-export const TaskCard = ({ task, onEdit }) => {
+export const TaskCard = ({ task, onEdit, isInsideEvent = false, dateStr = null }) => {
   const { 
     toggleTaskComplete, 
     deleteTask, 
@@ -42,6 +42,7 @@ export const TaskCard = ({ task, onEdit }) => {
     getRecurrenceLabel,
     eventTasks 
   } = useTasks();
+  const effectiveDate = dateStr || recurringDate;
   const parentEvent = task.eventId ? eventTasks?.find(e => e.id === task.eventId) : null;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
@@ -64,10 +65,10 @@ export const TaskCard = ({ task, onEdit }) => {
 
   const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
   const isCompleted = isRecurring
-    ? (Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate))
+    ? (Array.isArray(task.completedDates) && task.completedDates.includes(effectiveDate))
     : task.status === 'completed';
-  const recurringDoneSteps = isRecurring && Array.isArray(task.completedStepsByDate?.[recurringDate])
-    ? task.completedStepsByDate[recurringDate].length
+  const recurringDoneSteps = isRecurring && Array.isArray(task.completedStepsByDate?.[effectiveDate])
+    ? task.completedStepsByDate[effectiveDate].length
     : 0;
   const isInProgress = isRecurring
     ? (!isCompleted && recurringDoneSteps > 0)
@@ -126,7 +127,7 @@ export const TaskCard = ({ task, onEdit }) => {
   const dueInfo = getDueDateDisplay(task.dueDate);
   const createdDate = getCreatedDateDisplay(task.createdAt);
   const completedDateString = isRecurring
-    ? (isCompleted ? (task.completedAtByDate?.[recurringDate] || recurringDate) : null)
+    ? (isCompleted ? (task.completedAtByDate?.[effectiveDate] || effectiveDate) : null)
     : (isCompleted ? task.completedAt : null);
   const completedDate = getCompletedDateDisplay(completedDateString);
 
@@ -147,7 +148,7 @@ export const TaskCard = ({ task, onEdit }) => {
         className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
         onClick={() => {
           if (isRecurring) {
-            toggleRecurringDateComplete(task.id, recurringDate);
+            toggleRecurringDateComplete(task.id, effectiveDate);
           } else {
             toggleTaskComplete(task.id);
           }
@@ -164,7 +165,7 @@ export const TaskCard = ({ task, onEdit }) => {
           
           {/* Actions */}
           <div className="task-actions" style={{ gap: '6px' }}>
-            {task.recurrence && task.recurrence !== 'none' && (
+            {!isInsideEvent && task.recurrence && task.recurrence !== 'none' && (
               <button
                 type="button"
                 className={`btn-stop-recurrence ${task.isRecurringStopped ? 'resume' : 'stop'}`}
@@ -212,7 +213,7 @@ export const TaskCard = ({ task, onEdit }) => {
         {/* Multi-Step Checklist */}
         {Boolean((task.hasSteps || (Array.isArray(task.steps) && task.steps.length > 0)) && Array.isArray(task.steps) && task.steps.length > 0) && (() => {
           const completedCount = isRecurring
-            ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
+            ? (task.completedStepsByDate?.[effectiveDate]?.length || 0)
             : task.steps.filter((s) => s.completed).length;
           const totalCount = task.steps.length;
           const percentage = Math.round((completedCount / totalCount) * 100);
@@ -295,7 +296,7 @@ export const TaskCard = ({ task, onEdit }) => {
                   <div className="card-steps-floating-list">
                     {task.steps.map((step, idx) => {
                       const isStepDone = isRecurring
-                        ? Boolean(task.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                        ? Boolean(task.completedStepsByDate?.[effectiveDate]?.includes(step.id))
                         : Boolean(step.completed);
 
                       return (
@@ -305,7 +306,7 @@ export const TaskCard = ({ task, onEdit }) => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isRecurring) {
-                              toggleTaskStep(task.id, step.id, recurringDate);
+                              toggleTaskStep(task.id, step.id, effectiveDate);
                             } else {
                               toggleTaskStep(task.id, step.id);
                             }
@@ -393,8 +394,8 @@ export const TaskCard = ({ task, onEdit }) => {
             </span>
           )}
 
-          {/* Recurrence Badge */}
-          {task.recurrence && task.recurrence !== 'none' && (
+          {/* Recurrence Badge (hidden when inside an event) */}
+          {!isInsideEvent && task.recurrence && task.recurrence !== 'none' && (
             <span className="badge badge-recurrence" title={`Recurring: ${getRecurrenceLabel(task)}`}>
               <Repeat size={11} />
               <span>{getRecurrenceLabel(task)}</span>
@@ -402,7 +403,7 @@ export const TaskCard = ({ task, onEdit }) => {
           )}
 
           {/* Stopped Recurrence Badge */}
-          {task.isRecurringStopped && (
+          {!isInsideEvent && task.isRecurringStopped && (
             <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.6875rem' }}>
               ⏸ Stopped
             </span>
@@ -440,8 +441,8 @@ export const TaskCard = ({ task, onEdit }) => {
             </div>
           )}
 
-          {/* Parent Event Folder Badge */}
-          {parentEvent && (
+          {/* Parent Event Badge (hidden when already inside an event) */}
+          {!isInsideEvent && parentEvent && (
             <span 
               className="badge" 
               style={{ 

@@ -928,11 +928,11 @@ export const TaskProvider = ({ children }) => {
 
   // Segmentation: Normal vs Recurring tasks & events (tasks inside events are scoped to their parent event)
   const normalEvents = useMemo(() => {
-    return tasks.filter((t) => t.isEvent && (!t.eventType || t.eventType === 'normal' || (!t.recurrence || t.recurrence === 'none')));
+    return tasks.filter((t) => t.isEvent && (t.eventType === 'normal' || (!t.eventType && (!t.recurrence || t.recurrence === 'none'))));
   }, [tasks]);
 
   const recurringEvents = useMemo(() => {
-    return tasks.filter((t) => t.isEvent && (t.eventType === 'recurring' || (t.recurrence && t.recurrence !== 'none')));
+    return tasks.filter((t) => t.isEvent && (t.eventType === 'recurring' || (!t.eventType && t.recurrence && t.recurrence !== 'none')));
   }, [tasks]);
 
   const normalTasks = useMemo(() => {
@@ -978,12 +978,8 @@ export const TaskProvider = ({ children }) => {
     } else if (taskTypeTab === 'recurring') {
       baseTasks = recurringTasks.filter((task) => {
         if (task.isEvent) {
-          if (task.recurrence && task.recurrence !== 'none') {
-            return isTaskScheduledOnDate(task, recurringDate);
-          }
-          const childTasks = tasks.filter((c) => c.eventId === task.id);
-          if (childTasks.length === 0) return true;
-          return childTasks.some((c) => isTaskScheduledOnDate(c, recurringDate));
+          // Recurring event stays persistently in workspace until explicitly deleted
+          return true;
         }
         return isTaskScheduledOnDate(task, recurringDate);
       });

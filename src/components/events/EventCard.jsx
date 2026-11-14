@@ -1,32 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Calendar, 
-  Clock, 
-  Flame, 
-  AlertTriangle, 
-  ArrowDown, 
   Users, 
   Banknote, 
-  Check, 
-  Repeat, 
   CheckCircle2, 
-  ListChecks, 
   Edit3, 
   Trash2, 
   ChevronDown, 
   ChevronUp, 
-  CheckSquare, 
-  PlayCircle, 
-  PauseCircle, 
-  X, 
   AlertCircle,
-  Plus,
-  FolderInput,
-  FolderOutput 
+  Plus 
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
-import { MoveTaskEventModal } from './MoveTaskEventModal';
+import { TaskCard } from '../tasks/TaskCard';
 
 export const EventCard = ({ 
   event, 
@@ -38,35 +25,13 @@ export const EventCard = ({
 }) => {
   const { 
     tasks, 
-    deleteTask, 
     deleteEvent, 
-    toggleTaskComplete, 
-    toggleRecurringDateComplete, 
-    toggleStopRecurrence, 
-    toggleTaskStep, 
-    getRecurrenceLabel, 
     recurringDate 
   } = useTasks();
 
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
-  const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
   const [deleteTargetEvent, setDeleteTargetEvent] = useState(null);
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
-  const [moveTargetTask, setMoveTargetTask] = useState(null);
-
-  // Close floating popover when clicking outside
-  useEffect(() => {
-    if (!activeStepsTaskId) return;
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.card-steps-section')) {
-        setActiveStepsTaskId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [activeStepsTaskId]);
-
-  const hasFloatingMenuOpen = Boolean(activeStepsTaskId);
 
   const effectiveDate = propDateStr || recurringDate;
   const isRecurringEvent = event.eventType === 'recurring' || Boolean(event.recurrence && event.recurrence !== 'none');
@@ -88,11 +53,8 @@ export const EventCard = ({
   const percentage = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
   const isAllDone = totalSubtasks > 0 && completedSubtasks === totalSubtasks;
 
-  // Date range or recurrence text
+  // Date range text (for normal events with explicit dates; no recurring tags/icons)
   const dateInfoText = (() => {
-    if (isRecurringEvent && event.recurrence && event.recurrence !== 'none') {
-      return getRecurrenceLabel(event);
-    }
     if (event.startDate && event.endDate) {
       return `${format(parseISO(event.startDate), 'MMM d, yyyy')} – ${format(parseISO(event.endDate), 'MMM d, yyyy')}`;
     }
@@ -113,7 +75,7 @@ export const EventCard = ({
         transition: 'all var(--transition-fast)',
         borderLeft: `5px solid ${accentColor}`,
         position: 'relative',
-        zIndex: hasFloatingMenuOpen ? 70 : 1
+        zIndex: 1
       }}
     >
       {/* Event Header */}
@@ -150,7 +112,7 @@ export const EventCard = ({
               marginTop: '2px'
             }}
           >
-            {isRecurringEvent ? <Repeat size={20} /> : <Calendar size={20} />}
+            <Calendar size={20} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -168,7 +130,7 @@ export const EventCard = ({
               </h3>
 
               <span className="badge" style={{ background: `${accentColor}18`, color: accentColor, borderColor: `${accentColor}33`, fontSize: '0.6875rem' }}>
-                {isRecurringEvent ? 'Recurring Event' : 'Event'}
+                Event
               </span>
 
               {isAllDone && (
@@ -178,9 +140,11 @@ export const EventCard = ({
                 </span>
               )}
 
-              <span className={`badge badge-${event.priority}`} style={{ textTransform: 'capitalize', fontSize: '0.6875rem' }}>
-                {event.priority}
-              </span>
+              {event.priority && (
+                <span className={`badge badge-${event.priority}`} style={{ textTransform: 'capitalize', fontSize: '0.6875rem' }}>
+                  {event.priority}
+                </span>
+              )}
             </div>
 
             {event.description && (
@@ -193,7 +157,7 @@ export const EventCard = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
               {dateInfoText && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {isRecurringEvent ? <Repeat size={12} color="var(--primary)" /> : <Calendar size={12} color="var(--primary)" />}
+                  <Calendar size={12} color="var(--primary)" />
                   <span>{dateInfoText}</span>
                 </span>
               )}
@@ -306,7 +270,7 @@ export const EventCard = ({
         </div>
       </div>
 
-      {/* Expanded Body: Subtasks list */}
+      {/* Expanded Body: Subtasks rendered exactly like non-event tasks using TaskCard */}
       {isExpanded && (
         <div 
           className="event-folder-body" 
@@ -347,286 +311,15 @@ export const EventCard = ({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {childTasks.map((task) => {
-                const isRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
-                const isCompleted = isRecurring
-                  ? Boolean(task.completedDates?.includes(effectiveDate))
-                  : task.status === 'completed';
-
-                const isStepsOpen = activeStepsTaskId === task.id;
-
-                return (
-                  <div 
-                    key={task.id}
-                    className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''} ${isStepsOpen ? 'has-floating-menu-open' : ''}`}
-                    style={{ 
-                      padding: '10px 14px', 
-                      cursor: 'default',
-                      background: 'var(--bg-surface)',
-                      borderRadius: 'var(--radius-md)',
-                      position: 'relative',
-                      zIndex: isStepsOpen ? 50 : 1
-                    }}
-                  >
-                    {/* Checkbox */}
-                    <div 
-                      className={`custom-checkbox ${isCompleted ? 'checked' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isRecurring) {
-                          toggleRecurringDateComplete(task.id, effectiveDate);
-                        } else {
-                          toggleTaskComplete(task.id);
-                        }
-                      }}
-                      title={isCompleted ? "Mark as Incomplete" : "Mark as Completed"}
-                      style={{ marginTop: '2px', flexShrink: 0 }}
-                    >
-                      {isCompleted && <Check size={14} />}
-                    </div>
-
-                    {/* Task Content */}
-                    <div className="task-content" style={{ flex: 1, minWidth: 0 }}>
-                      <div className="task-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}>
-                          {isRecurring ? (
-                            <span title="Recurring Task" style={{ color: '#6366f1', display: 'flex', alignItems: 'center' }}>
-                              <Repeat size={14} />
-                            </span>
-                          ) : (
-                            <span title="Normal Task" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                              <CheckSquare size={14} />
-                            </span>
-                          )}
-                          <h4 
-                            className="task-title" 
-                            style={{ 
-                              fontSize: '0.875rem', 
-                              fontWeight: 700, 
-                              margin: 0, 
-                              color: 'var(--text-main)', 
-                              wordBreak: 'break-word',
-                              lineHeight: 1.35
-                            }}
-                          >
-                            {task.title}
-                          </h4>
-                        </div>
-
-                        {/* Actions Toolbar */}
-                        <div className="task-actions" style={{ gap: '4px', flexShrink: 0 }}>
-                          {isRecurring && (
-                            <button
-                              type="button"
-                              className={`btn-stop-recurrence ${task.isRecurringStopped ? 'resume' : 'stop'}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleStopRecurrence(task.id);
-                              }}
-                              title={task.isRecurringStopped ? "Resume recurring schedule" : "Stop recurrence for this task"}
-                            >
-                              {task.isRecurringStopped ? <PlayCircle size={11} /> : <PauseCircle size={11} />}
-                              <span>{task.isRecurringStopped ? 'Resume' : 'Stop'}</span>
-                            </button>
-                          )}
-
-                          <button 
-                            type="button"
-                            className="btn-icon" 
-                            style={{ width: '26px', height: '26px', color: 'var(--primary)' }} 
-                            onClick={() => setMoveTargetTask(task)}
-                            title="Move to another Event or remove from this Event"
-                          >
-                            <FolderOutput size={13} />
-                          </button>
-
-                          <button 
-                            type="button"
-                            className="btn-icon" 
-                            style={{ width: '26px', height: '26px' }} 
-                            onClick={() => onEditTask && onEditTask(task)}
-                            title="Edit Task"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-
-                          <button 
-                            type="button" 
-                            className="btn-icon" 
-                            style={{ width: '26px', height: '26px', color: 'var(--priority-urgent)' }} 
-                            onClick={() => deleteTask(task.id)}
-                            title="Delete Task"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {task.description && (
-                        <p className="task-desc" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
-                          {task.description}
-                        </p>
-                      )}
-
-                      {/* Multi-Step Checklist (EXACTLY SAME AS NORMAL/RECURRING TASK STEP DROPDOWN) */}
-                      {Boolean((task.hasSteps || (Array.isArray(task.steps) && task.steps.length > 0)) && Array.isArray(task.steps) && task.steps.length > 0) && (() => {
-                        const stepCompletedCount = isRecurring
-                          ? (task.completedStepsByDate?.[effectiveDate]?.length || 0)
-                          : task.steps.filter((s) => s.completed).length;
-                        const stepTotalCount = task.steps.length;
-                        const stepPct = Math.round((stepCompletedCount / stepTotalCount) * 100);
-
-                        return (
-                          <div 
-                            className={`card-steps-section ${isStepsOpen ? 'menu-open' : ''}`}
-                            style={{ marginTop: '6px' }}
-                          >
-                            <div 
-                              className="card-steps-header" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveStepsTaskId((prev) => (prev === task.id ? null : task.id));
-                              }}
-                              title={isStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <ListChecks size={13} color="var(--primary)" />
-                                <span className="card-steps-label">
-                                  Steps ({stepCompletedCount}/{stepTotalCount})
-                                </span>
-                                <span className={`card-steps-pill ${stepPct === 100 ? 'done' : ''}`}>
-                                  {stepPct}%
-                                </span>
-                              </div>
-                              <button 
-                                type="button" 
-                                className="btn-icon" 
-                                style={{ width: '20px', height: '20px', padding: 0 }}
-                                aria-label={isStepsOpen ? "Close subtasks menu" : "Open subtasks menu"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveStepsTaskId((prev) => (prev === task.id ? null : task.id));
-                                }}
-                              >
-                                {isStepsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                              </button>
-                            </div>
-
-                            {/* Progress Bar (Always compact) */}
-                            <div className="card-steps-bar-track">
-                              <div 
-                                className="card-steps-bar-fill" 
-                                style={{ 
-                                  width: `${stepPct}%`,
-                                  background: stepPct === 100 ? '#10b981' : 'var(--primary)' 
-                                }} 
-                              />
-                            </div>
-
-                            {/* Floating Menu Popover (Does NOT expand the card, SAME AS NORMAL/RECURRING TASK STEP DROPDOWN) */}
-                            {isStepsOpen && (
-                              <div 
-                                className="card-steps-floating-menu" 
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="card-steps-floating-header">
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <ListChecks size={13} color="var(--primary)" />
-                                    <span className="card-steps-floating-title">Subtasks</span>
-                                    <span className={`card-steps-pill ${stepPct === 100 ? 'done' : ''}`}>
-                                      {stepCompletedCount}/{stepTotalCount} ({stepPct}%)
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className="btn-icon card-steps-floating-close"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveStepsTaskId(null);
-                                    }}
-                                    title="Close"
-                                    aria-label="Close subtasks menu"
-                                  >
-                                    <X size={13} />
-                                  </button>
-                                </div>
-
-                                <div className="card-steps-floating-list">
-                                  {task.steps.map((step, idx) => {
-                                    const isStepDone = isRecurring
-                                      ? Boolean(task.completedStepsByDate?.[effectiveDate]?.includes(step.id))
-                                      : Boolean(step.completed);
-
-                                    return (
-                                      <div 
-                                        key={step.id || idx}
-                                        className={`card-step-row ${isStepDone ? 'completed' : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (isRecurring) {
-                                            toggleTaskStep(task.id, step.id, effectiveDate);
-                                          } else {
-                                            toggleTaskStep(task.id, step.id);
-                                          }
-                                        }}
-                                      >
-                                        <div 
-                                          className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                                          title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
-                                        >
-                                          {isStepDone && <Check size={10} />}
-                                        </div>
-                                        <span className="card-step-text">
-                                          {step.title}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* Metadata Chips */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                        {isRecurring && (
-                          <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
-                            <Repeat size={10} />
-                            <span>{getRecurrenceLabel(task)}</span>
-                          </span>
-                        )}
-
-                        {!isRecurring && task.dueDate && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Calendar size={11} color="var(--primary)" />
-                            <span>Due: {task.dueDate}</span>
-                          </span>
-                        )}
-
-                        {task.assignedTo && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Users size={11} />
-                            <span>{task.assignedTo.name}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Quick Add Button at bottom of subtasks */}
-              <button 
-                type="button"
-                className="btn btn-secondary"
-                style={{ padding: '6px 12px', fontSize: '0.75rem', alignSelf: 'flex-start', marginTop: '4px', gap: '4px' }}
-                onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(event.id, isRecurringEvent)}
-              >
-                <Plus size={13} />
-                <span>Add Task to this Event</span>
-              </button>
+              {childTasks.map((task) => (
+                <TaskCard 
+                  key={task.id} 
+                  task={task} 
+                  onEdit={onEditTask} 
+                  isInsideEvent={true}
+                  dateStr={effectiveDate}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -637,26 +330,30 @@ export const EventCard = ({
         <div 
           className="modal-overlay" 
           onClick={() => setDeleteTargetEvent(null)}
-          style={{ zIndex: 1200 }}
+          style={{ zIndex: 1100 }}
         >
           <div 
             className="modal-dialog" 
-            style={{ maxWidth: '420px', padding: '20px' }}
+            style={{ maxWidth: '440px' }} 
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header" style={{ padding: '0 0 12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--priority-urgent)' }}>
-                <AlertCircle size={18} />
-                <span style={{ fontWeight: 700 }}>Delete Event</span>
+            <div className="modal-header">
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={18} color="var(--priority-urgent)" />
+                <span>Delete Event</span>
               </div>
-              <button type="button" className="btn-icon" onClick={() => setDeleteTargetEvent(null)}>
-                <X size={16} />
+              <button 
+                type="button" 
+                className="btn-icon" 
+                onClick={() => setDeleteTargetEvent(null)}
+              >
+                ✕
               </button>
             </div>
 
-            <div className="modal-body" style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                Are you sure you want to delete the event <strong style={{ color: 'var(--text-main)' }}>"{deleteTargetEvent.title}"</strong>?
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                Are you sure you want to delete event "<strong>{deleteTargetEvent.title}</strong>"?
               </p>
 
               {childTasks.length > 0 && (
@@ -717,13 +414,6 @@ export const EventCard = ({
           </div>
         </div>
       )}
-
-      {/* Move Task to/from Event Modal */}
-      <MoveTaskEventModal
-        isOpen={Boolean(moveTargetTask)}
-        onClose={() => setMoveTargetTask(null)}
-        task={moveTargetTask}
-      />
     </div>
   );
 };

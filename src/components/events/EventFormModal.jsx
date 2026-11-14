@@ -3,20 +3,11 @@ import { createPortal } from 'react-dom';
 import { 
   X, 
   Calendar, 
-  Flame, 
-  AlertTriangle, 
-  Clock, 
-  ArrowDown, 
   Users, 
   Banknote, 
   Palette, 
-  Tag, 
-  Check, 
-  Plus,
-  Repeat,
-  Layers 
+  Check 
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 
 const COLOR_PRESETS = [
@@ -39,19 +30,16 @@ export const EventFormModal = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eventType, setEventType] = useState(defaultEventType || 'normal');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [recurrence, setRecurrence] = useState('daily');
-  const [priority, setPriority] = useState('medium');
   const [amount, setAmount] = useState('');
   const [selectedColor, setSelectedColor] = useState('#6366f1');
   const [assignedName, setAssignedName] = useState('');
   const [isCustomAssignee, setIsCustomAssignee] = useState(false);
-  const [tagsInput, setTagsInput] = useState('');
 
   const prevIsOpenRef = useRef(false);
   const prevEventIdRef = useRef(null);
+
+  const eventType = initialEvent?.eventType || defaultEventType || 'normal';
+  const isRecurring = eventType === 'recurring';
 
   useEffect(() => {
     const isOpening = isOpen && !prevIsOpenRef.current;
@@ -61,36 +49,23 @@ export const EventFormModal = ({
       if (initialEvent) {
         setTitle(initialEvent.title || '');
         setDescription(initialEvent.description || '');
-        setEventType(initialEvent.eventType || (initialEvent.recurrence && initialEvent.recurrence !== 'none' ? 'recurring' : 'normal'));
-        setStartDate(initialEvent.startDate || '');
-        setEndDate(initialEvent.endDate || initialEvent.dueDate || '');
-        setRecurrence(initialEvent.recurrence || 'daily');
-        setPriority(initialEvent.priority || 'medium');
         setAmount(initialEvent.amount !== undefined && initialEvent.amount !== null ? String(initialEvent.amount) : '');
-        setSelectedColor(initialEvent.color || '#6366f1');
+        setSelectedColor(initialEvent.color || (isRecurring ? '#8b5cf6' : '#6366f1'));
         setAssignedName(initialEvent.assignedTo?.name || '');
         setIsCustomAssignee(Boolean(initialEvent.assignedTo?.name && !assignees.some(a => a.name === initialEvent.assignedTo.name)));
-        setTagsInput(Array.isArray(initialEvent.tags) ? initialEvent.tags.join(', ') : '');
       } else {
         setTitle('');
         setDescription('');
-        setEventType(defaultEventType || 'normal');
-        const today = format(new Date(), 'yyyy-MM-dd');
-        setStartDate(today);
-        setEndDate('');
-        setRecurrence('daily');
-        setPriority('medium');
         setAmount('');
-        setSelectedColor(defaultEventType === 'recurring' ? '#8b5cf6' : '#6366f1');
+        setSelectedColor(isRecurring ? '#8b5cf6' : '#6366f1');
         setAssignedName('');
         setIsCustomAssignee(false);
-        setTagsInput('');
       }
     }
 
     prevIsOpenRef.current = isOpen;
     prevEventIdRef.current = initialEvent?.id || null;
-  }, [isOpen, initialEvent, defaultEventType, assignees]);
+  }, [isOpen, initialEvent, isRecurring, assignees]);
 
   if (!isOpen) return null;
 
@@ -98,23 +73,16 @@ export const EventFormModal = ({
     e.preventDefault();
     if (!title.trim()) return;
 
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
-
-    const isRecurring = eventType === 'recurring';
-
     const eventPayload = {
       isEvent: true,
       eventType,
-      recurrence: isRecurring ? (recurrence || 'daily') : 'none',
+      recurrence: 'none',
       title: title.trim(),
       description: description.trim(),
-      startDate: startDate || null,
-      endDate: endDate || null,
-      dueDate: endDate || startDate || null,
-      priority,
+      startDate: null,
+      endDate: null,
+      dueDate: null,
+      priority: initialEvent?.priority || 'medium',
       status: initialEvent?.status || 'todo',
       color: selectedColor || (isRecurring ? '#8b5cf6' : '#6366f1'),
       amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
@@ -125,7 +93,7 @@ export const EventFormModal = ({
             avatar: assignedName.trim().slice(0, 2).toUpperCase()
           }
         : null,
-      tags
+      tags: initialEvent?.tags || []
     };
 
     onClose();
@@ -141,7 +109,7 @@ export const EventFormModal = ({
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
       <div 
         className="modal-dialog" 
-        style={{ maxWidth: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} 
+        style={{ maxWidth: '540px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -159,12 +127,12 @@ export const EventFormModal = ({
                 justifyContent: 'center' 
               }}
             >
-              {eventType === 'recurring' ? <Repeat size={18} /> : <Calendar size={18} />}
+              <Calendar size={18} />
             </div>
             <span>
               {initialEvent 
-                ? (eventType === 'recurring' ? 'Edit Recurring Event' : 'Edit Event') 
-                : (eventType === 'recurring' ? 'Create Recurring Event' : 'Create New Event')}
+                ? (isRecurring ? 'Edit Recurring Event' : 'Edit Event') 
+                : (isRecurring ? 'Create Recurring Event' : 'Create New Event')}
             </span>
           </div>
           <button className="btn-icon" onClick={onClose} type="button">
@@ -176,52 +144,7 @@ export const EventFormModal = ({
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div className="modal-body" style={{ flex: 1, overflowY: 'auto', gap: '14px', padding: '16px 20px' }}>
             
-            {/* Event Type Switcher (Normal vs Recurring) */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>Event Category</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  className={`btn ${eventType === 'normal' ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    fontSize: '0.8125rem'
-                  }}
-                  onClick={() => setEventType('normal')}
-                >
-                  <Calendar size={14} />
-                  <span>Normal Event</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`btn ${eventType === 'recurring' ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    fontSize: '0.8125rem'
-                  }}
-                  onClick={() => setEventType('recurring')}
-                >
-                  <Repeat size={14} />
-                  <span>Recurring Event</span>
-                </button>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                {eventType === 'normal' 
-                  ? 'Groups normal one-time tasks under this event.' 
-                  : 'Groups recurring tasks that follow a repeated schedule.'}
-              </p>
-            </div>
-
-            {/* Event Name */}
+            {/* 1. Event Name */}
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: 600 }}>
                 Event Name <span style={{ color: 'var(--priority-urgent)' }}>*</span>
@@ -229,7 +152,7 @@ export const EventFormModal = ({
               <input 
                 type="text" 
                 className="input" 
-                placeholder={eventType === 'recurring' ? "e.g. Daily Fitness Routine, Weekly Housekeeping..." : "e.g. Website Redesign, Annual Conference, Trip to Europe..."}
+                placeholder={isRecurring ? "e.g. Daily Fitness Routine, Weekly Housekeeping..." : "e.g. Website Redesign, Annual Conference, Sister's Wedding..."}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -237,106 +160,40 @@ export const EventFormModal = ({
               />
             </div>
 
-            {/* Description */}
+            {/* 2. Description / Event Notes */}
             <div className="form-group">
               <label className="form-label">Description / Event Notes</label>
               <textarea 
                 className="textarea" 
-                placeholder="Key goals, overview, venue, or objectives for this event..."
+                placeholder="Key goals, location, venue details, or overview for this event..."
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                style={{ resize: 'vertical', minHeight: '70px' }}
+                style={{ resize: 'vertical', minHeight: '75px' }}
               />
             </div>
 
-            {/* Dates: Normal Event shows Start/End dates; Recurring Event shows Recurrence Pattern */}
-            {eventType === 'normal' ? (
-              <div className="form-row-2col">
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Calendar size={13} color="var(--primary)" />
-                    <span>Start Date</span>
-                  </label>
-                  <input 
-                    type="date" 
-                    className="input"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Calendar size={13} color="var(--primary)" />
-                    <span>End / Target Date</span>
-                  </label>
-                  <input 
-                    type="date" 
-                    className="input"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Repeat size={13} color="var(--primary)" />
-                  <span>Repeat Schedule</span>
-                </label>
-                <select 
-                  className="select"
-                  value={recurrence}
-                  onChange={(e) => setRecurrence(e.target.value)}
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="weekdays">Every Weekday (Mon - Fri)</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-            )}
-
-            {/* Priority & Budget */}
-            <div className="form-row-2col">
-              {/* Priority */}
-              <div className="form-group">
-                <label className="form-label">Priority</label>
-                <select 
-                  className="select"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                >
-                  <option value="low">⬇️ Low Priority</option>
-                  <option value="medium">⏱️ Medium Priority</option>
-                  <option value="high">⚠️ High Priority</option>
-                  <option value="urgent">🔥 Urgent Priority</option>
-                </select>
-              </div>
-
-              {/* Estimated Budget / Amount */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Banknote size={13} color="var(--primary)" />
-                  <span>Total Budget (Optional)</span>
-                </label>
-                <div className="input-with-symbol">
-                  <span className="input-symbol">₹</span>
-                  <input 
-                    type="number"
-                    min="0"
-                    step="any"
-                    className="input input-with-symbol-field" 
-                    placeholder="e.g. 50000"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
+            {/* 3. Total Budget (Optional) */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Banknote size={13} color="var(--primary)" />
+                <span>Total Budget (Optional)</span>
+              </label>
+              <div className="input-with-symbol">
+                <span className="input-symbol">₹</span>
+                <input 
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="input input-with-symbol-field" 
+                  placeholder="e.g. 50000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
               </div>
             </div>
 
-            {/* Event Lead / Organizer */}
+            {/* 4. Event Lead / Organizer (Optional) */}
             <div className="form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
                 <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -400,7 +257,7 @@ export const EventFormModal = ({
               )}
             </div>
 
-            {/* Color Theme */}
+            {/* 5. Color Theme */}
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                 <Palette size={13} color="var(--primary)" />
@@ -434,21 +291,6 @@ export const EventFormModal = ({
               </div>
             </div>
 
-            {/* Tags */}
-            <div className="form-group">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Tag size={13} color="var(--primary)" />
-                <span>Tags (Optional, comma-separated)</span>
-              </label>
-              <input 
-                type="text" 
-                className="input" 
-                placeholder="e.g. milestone, q4, travel, wedding"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-              />
-            </div>
-
           </div>
 
           {/* Footer */}
@@ -462,8 +304,8 @@ export const EventFormModal = ({
               disabled={!title.trim()}
               style={{ background: selectedColor, borderColor: selectedColor, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              {eventType === 'recurring' ? <Repeat size={15} /> : <Calendar size={15} />}
-              <span>{initialEvent ? 'Save Changes' : (eventType === 'recurring' ? 'Create Recurring Event' : 'Create Event')}</span>
+              <Calendar size={15} />
+              <span>{initialEvent ? 'Save Changes' : (isRecurring ? 'Create Recurring Event' : 'Create Event')}</span>
             </button>
           </div>
         </form>

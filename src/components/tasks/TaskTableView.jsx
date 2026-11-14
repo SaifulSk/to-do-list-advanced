@@ -298,13 +298,13 @@ export const TaskTableView = ({
                             flexShrink: 0
                           }}
                         >
-                          {isRecurringEvent ? <Repeat size={13} /> : <Calendar size={13} />}
+                          <Calendar size={13} />
                         </div>
                         <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.875rem' }}>
                           {task.title}
                         </span>
                         <span className="badge" style={{ background: `${accentColor}15`, color: accentColor, borderColor: `${accentColor}33`, fontSize: '0.625rem', padding: '1px 5px' }}>
-                          {isRecurringEvent ? 'Recurring Event' : 'Event'}
+                          Event
                         </span>
                         <span className="badge" style={{ fontSize: '0.625rem', padding: '1px 5px' }}>
                           {totalCount} {totalCount === 1 ? 'task' : 'tasks'}
@@ -350,16 +350,9 @@ export const TaskTableView = ({
                       </span>
                     </td>
 
-                    {/* Recurrence */}
+                    {/* Recurrence (hidden for events per instructions) */}
                     <td>
-                      {isRecurringEvent && task.recurrence && task.recurrence !== 'none' ? (
-                        <span className="badge badge-recurrence" style={{ fontSize: '0.6875rem' }}>
-                          <Repeat size={10} />
-                          <span>{getRecurrenceLabel(task)}</span>
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                      )}
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                     </td>
 
                     {/* Amount */}
@@ -444,227 +437,311 @@ export const TaskTableView = ({
                     </td>
                   </tr>
 
-                  {/* Expanded Subtasks Row */}
+                  {/* Expanded Subtasks: Rendered as table rows matching the 10 columns */}
                   {isExpanded && (
-                    <tr className="event-table-expanded-row">
-                      <td colSpan={10} style={{ padding: '10px 18px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {childTasks.length === 0 ? (
-                            <div style={{ padding: '14px', textAlign: 'center', background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                              <span>No tasks in this event yet. </span>
-                              <button
-                                type="button"
-                                className="btn-link"
-                                style={{ color: 'var(--primary)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
-                              >
-                                + Add Task
-                              </button>
-                            </div>
-                          ) : (
-                            childTasks.map((sub) => {
-                              const isSubRec = Boolean(sub.recurrence && sub.recurrence !== 'none');
-                              const isSubDone = isSubRec
-                                ? Boolean(sub.completedDates?.includes(recurringDate))
-                                : sub.status === 'completed';
-
-                              const hasSubSteps = Boolean((sub.hasSteps || (Array.isArray(sub.steps) && sub.steps.length > 0)) && Array.isArray(sub.steps) && sub.steps.length > 0);
-                              const subStepsCompletedCount = hasSubSteps
-                                ? (isSubRec
-                                    ? (sub.completedStepsByDate?.[recurringDate]?.length || 0)
-                                    : sub.steps.filter((s) => s.completed).length)
-                                : 0;
-                              const subStepsTotalCount = hasSubSteps ? sub.steps.length : 0;
-                              const subStepsPct = subStepsTotalCount > 0 ? Math.round((subStepsCompletedCount / subStepsTotalCount) * 100) : 0;
-                              const isSubStepsOpen = activeStepsTaskId === sub.id;
-
-                              return (
-                                <div 
-                                  key={sub.id}
-                                  className={`event-table-subtask-item ${isSubStepsOpen ? 'has-floating-menu-open' : ''}`}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: '12px',
-                                    padding: '8px 12px',
-                                    background: 'var(--bg-surface)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid var(--border-subtle)',
-                                    position: 'relative',
-                                    zIndex: isSubStepsOpen ? 45 : 1
-                                  }}
-                                >
-                                  {/* Left: Checkbox, Title & Compact Steps Dropdown (SAME AS NORMAL/RECURRING TASKS) */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-                                    <div 
-                                      className={`custom-checkbox ${isSubDone ? 'checked' : ''}`}
-                                      onClick={() => {
-                                        if (isSubRec) {
-                                          toggleRecurringDateComplete(sub.id, recurringDate);
-                                        } else {
-                                          toggleTaskComplete(sub.id);
-                                        }
-                                      }}
-                                      title={isSubDone ? "Mark as Incomplete" : "Mark as Completed"}
-                                      style={{ flexShrink: 0 }}
-                                    >
-                                      {isSubDone && <Check size={12} />}
-                                    </div>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
-                                      {isSubRec ? <Repeat size={12} color="#6366f1" /> : <Check size={12} color="var(--text-muted)" />}
-                                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: isSubDone ? 'var(--text-muted)' : 'var(--text-main)', textDecoration: isSubDone ? 'line-through' : 'none' }}>
-                                        {sub.title}
-                                      </span>
-                                    </div>
-
-                                    {/* Multi-Step Checklist for Table View (SAME AS NORMAL/RECURRING TASKS) */}
-                                    {hasSubSteps && (
-                                      <div className={`table-steps-container ${isSubStepsOpen ? 'menu-open' : ''}`} style={{ margin: 0 }}>
-                                        <button
-                                          type="button"
-                                          className="table-steps-toggle-btn"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveStepsTaskId((prev) => (prev === sub.id ? null : sub.id));
-                                          }}
-                                          title={isSubStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
-                                        >
-                                          <ListChecks size={12} color="var(--primary)" />
-                                          <span>{subStepsCompletedCount}/{subStepsTotalCount} steps ({subStepsPct}%)</span>
-                                          {isSubStepsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                                        </button>
-
-                                        {/* Floating Menu Popover */}
-                                        {isSubStepsOpen && (
-                                          <div 
-                                            className="table-steps-floating-menu"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <div className="card-steps-floating-header">
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <ListChecks size={13} color="var(--primary)" />
-                                                <span className="card-steps-floating-title">Subtasks</span>
-                                                <span className={`card-steps-pill ${subStepsPct === 100 ? 'done' : ''}`}>
-                                                  {subStepsCompletedCount}/{subStepsTotalCount} ({subStepsPct}%)
-                                                </span>
-                                              </div>
-                                              <button
-                                                type="button"
-                                                className="btn-icon card-steps-floating-close"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setActiveStepsTaskId(null);
-                                                }}
-                                                title="Close"
-                                                aria-label="Close subtasks menu"
-                                              >
-                                                <X size={13} />
-                                              </button>
-                                            </div>
-
-                                            <div className="card-steps-floating-list">
-                                              {sub.steps.map((step, idx) => {
-                                                const isStepDone = isSubRec
-                                                  ? Boolean(sub.completedStepsByDate?.[recurringDate]?.includes(step.id))
-                                                  : Boolean(step.completed);
-
-                                                return (
-                                                  <div
-                                                    key={step.id || idx}
-                                                    className={`card-step-row ${isStepDone ? 'completed' : ''}`}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (isSubRec) {
-                                                        toggleTaskStep(sub.id, step.id, recurringDate);
-                                                      } else {
-                                                        toggleTaskStep(sub.id, step.id);
-                                                      }
-                                                    }}
-                                                  >
-                                                    <div
-                                                      className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                                                      title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
-                                                    >
-                                                      {isStepDone && <Check size={10} />}
-                                                    </div>
-                                                    <span className="card-step-text">{step.title}</span>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Right: Badges & Actions */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                    <span className={`badge badge-${sub.priority}`} style={{ textTransform: 'capitalize', fontSize: '0.625rem' }}>
-                                      {sub.priority}
-                                    </span>
-
-                                    {sub.dueDate && (
-                                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                                        Due: {sub.dueDate}
-                                      </span>
-                                    )}
-
-                                    {sub.assignedTo && (
-                                      <div className="assignee-chip" style={{ fontSize: '0.6875rem', padding: '1px 5px' }}>
-                                        <span>{sub.assignedTo.name}</span>
-                                      </div>
-                                    )}
-
-                                    <button 
-                                      type="button"
-                                      className="btn-icon" 
-                                      style={{ width: '24px', height: '24px', color: 'var(--primary)' }} 
-                                      onClick={() => setMoveTargetTask(sub)}
-                                      title="Change or remove from Event"
-                                    >
-                                      <FolderOutput size={12} />
-                                    </button>
-
-                                    <button 
-                                      type="button"
-                                      className="btn-icon" 
-                                      style={{ width: '24px', height: '24px' }} 
-                                      onClick={() => onEditTask(sub)}
-                                      title="Edit Task"
-                                    >
-                                      <Edit3 size={12} />
-                                    </button>
-
-                                    <button 
-                                      type="button" 
-                                      className="btn-icon" 
-                                      style={{ width: '24px', height: '24px', color: 'var(--priority-urgent)' }} 
-                                      onClick={() => deleteTask(sub.id)}
-                                      title="Delete Task"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-
+                    childTasks.length === 0 ? (
+                      <tr className="event-table-empty-row" style={{ background: 'var(--bg-app)' }}>
+                        <td colSpan={10} style={{ padding: '14px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <span>No tasks in this event yet. </span>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', alignSelf: 'flex-start', gap: '4px' }}
+                            className="btn-link"
+                            style={{ color: 'var(--primary)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                             onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
                           >
-                            <Plus size={12} />
-                            <span>Add Task to this Event</span>
+                            + Add Task
                           </button>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                    ) : (
+                      <>
+                        {childTasks.map((sub) => {
+                          const isSubRec = Boolean(sub.recurrence && sub.recurrence !== 'none');
+                          const isSubDone = isSubRec
+                            ? Boolean(sub.completedDates?.includes(recurringDate))
+                            : sub.status === 'completed';
+                          const subRecurringDoneSteps = isSubRec && sub.hasSteps && Array.isArray(sub.steps)
+                            ? (sub.completedStepsByDate?.[recurringDate]?.length || 0)
+                            : 0;
+                          const isSubInProgress = isSubRec
+                            ? (!isSubDone && subRecurringDoneSteps > 0)
+                            : sub.status === 'in_progress';
+                          const subDueInfo = getDueDateDisplay(sub.dueDate, isSubDone);
+
+                          const hasSubSteps = Boolean((sub.hasSteps || (Array.isArray(sub.steps) && sub.steps.length > 0)) && Array.isArray(sub.steps) && sub.steps.length > 0);
+                          const subStepsCompletedCount = hasSubSteps
+                            ? (isSubRec
+                                ? (sub.completedStepsByDate?.[recurringDate]?.length || 0)
+                                : sub.steps.filter((s) => s.completed).length)
+                            : 0;
+                          const subStepsTotalCount = hasSubSteps ? sub.steps.length : 0;
+                          const subStepsPct = subStepsTotalCount > 0 ? Math.round((subStepsCompletedCount / subStepsTotalCount) * 100) : 0;
+                          const isSubStepsOpen = activeStepsTaskId === sub.id;
+
+                          return (
+                            <tr 
+                              key={sub.id} 
+                              className={`event-subtask-row ${isSubDone ? 'completed' : ''} ${isSubStepsOpen ? 'has-floating-menu-open' : ''}`}
+                              style={{ background: 'var(--bg-app)', borderLeft: `4px solid ${accentColor}44` }}
+                            >
+                              {/* 1. Done Checkbox */}
+                              <td style={{ textAlign: 'center' }}>
+                                <div 
+                                  className={`custom-checkbox ${isSubDone ? 'checked' : ''}`}
+                                  onClick={() => {
+                                    if (isSubRec) {
+                                      toggleRecurringDateComplete(sub.id, recurringDate);
+                                    } else {
+                                      toggleTaskComplete(sub.id);
+                                    }
+                                  }}
+                                  title={isSubDone ? "Mark as Incomplete" : "Mark as Completed"}
+                                  style={{ margin: '0 auto' }}
+                                >
+                                  {isSubDone && <Check size={14} />}
+                                </div>
+                              </td>
+
+                              {/* 2. Task Title, Description & Step Menu */}
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>↳</span>
+                                  <span className="table-task-title">{sub.title}</span>
+                                </div>
+                                {sub.description && (
+                                  <div className="table-task-desc" style={{ paddingLeft: '14px' }} title={sub.description}>
+                                    {sub.description}
+                                  </div>
+                                )}
+
+                                {/* Multi-Step Checklist for Table View */}
+                                {hasSubSteps && (
+                                  <div className={`table-steps-container ${isSubStepsOpen ? 'menu-open' : ''}`} style={{ marginLeft: '14px' }}>
+                                    <button
+                                      type="button"
+                                      className="table-steps-toggle-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveStepsTaskId((prev) => (prev === sub.id ? null : sub.id));
+                                      }}
+                                      title={isSubStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
+                                    >
+                                      <ListChecks size={12} color="var(--primary)" />
+                                      <span>{subStepsCompletedCount}/{subStepsTotalCount} steps ({subStepsPct}%)</span>
+                                      {isSubStepsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                    </button>
+
+                                    {/* Floating Menu Popover */}
+                                    {isSubStepsOpen && (
+                                      <div 
+                                        className="table-steps-floating-menu"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="card-steps-floating-header">
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <ListChecks size={13} color="var(--primary)" />
+                                            <span className="card-steps-floating-title">Subtasks</span>
+                                            <span className={`card-steps-pill ${subStepsPct === 100 ? 'done' : ''}`}>
+                                              {subStepsCompletedCount}/{subStepsTotalCount} ({subStepsPct}%)
+                                            </span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            className="btn-icon card-steps-floating-close"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveStepsTaskId(null);
+                                            }}
+                                            title="Close"
+                                            aria-label="Close subtasks menu"
+                                          >
+                                            <X size={13} />
+                                          </button>
+                                        </div>
+
+                                        <div className="card-steps-floating-list">
+                                          {sub.steps.map((step, idx) => {
+                                            const isStepDone = isSubRec
+                                              ? Boolean(sub.completedStepsByDate?.[recurringDate]?.includes(step.id))
+                                              : Boolean(step.completed);
+
+                                            return (
+                                              <div
+                                                key={step.id || idx}
+                                                className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (isSubRec) {
+                                                    toggleTaskStep(sub.id, step.id, recurringDate);
+                                                  } else {
+                                                    toggleTaskStep(sub.id, step.id);
+                                                  }
+                                                }}
+                                              >
+                                                <div
+                                                  className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                                                  title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                                >
+                                                  {isStepDone && <Check size={10} />}
+                                                </div>
+                                                <span className="card-step-text">{step.title}</span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* 3. Status Badge */}
+                              <td>
+                                {isSubDone ? (
+                                  <span className="badge badge-completed">
+                                    <Check size={11} />
+                                    <span>Done</span>
+                                  </span>
+                                ) : isSubInProgress ? (
+                                  <span className="badge badge-in-progress">
+                                    <Clock size={11} />
+                                    <span>In Progress</span>
+                                  </span>
+                                ) : (
+                                  <span className="badge badge-todo">
+                                    <span>To Do</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* 4. Priority Badge (Under Priority Column) */}
+                              <td>
+                                <span 
+                                  className={`badge badge-${sub.priority}`} 
+                                  onClick={(e) => handleCyclePriority(e, sub)}
+                                  title="Click to change priority"
+                                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                                >
+                                  {getPriorityIcon(sub.priority)}
+                                  <span style={{ textTransform: 'capitalize' }}>{sub.priority}</span>
+                                </span>
+                              </td>
+
+                              {/* 5. Due Date (Under Due Date Column) */}
+                              <td>
+                                {subDueInfo ? (
+                                  <span className={`date-badge ${subDueInfo.class}`}>
+                                    {subDueInfo.text}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                )}
+                              </td>
+
+                              {/* 6. Recurrence (Under Recurrence Column - no recurring tag per instructions) */}
+                              <td>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                              </td>
+
+                              {/* 7. Amount (Under Amount Column) */}
+                              <td>
+                                {sub.amount !== undefined && sub.amount !== null && sub.amount !== '' ? (
+                                  <span className="badge badge-amount">
+                                    <Banknote size={12} />
+                                    <span>{sub.currency || '₹'}{Number(sub.amount).toLocaleString()}</span>
+                                  </span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                )}
+                              </td>
+
+                              {/* 8. Assignee (Under Assignee Column) */}
+                              <td>
+                                {sub.assignedTo && sub.assignedTo.name ? (
+                                  <div className="assignee-chip" style={{ width: 'fit-content' }}>
+                                    <div className="avatar" style={{ width: '16px', height: '16px', fontSize: '0.5625rem' }}>
+                                      {sub.assignedTo.avatar || sub.assignedTo.name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <span>{sub.assignedTo.name}</span>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Unassigned</span>
+                                )}
+                              </td>
+
+                              {/* 9. Tags (Under Tags Column) */}
+                              <td>
+                                {sub.tags && sub.tags.length > 0 ? (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                    {sub.tags.map((tag, idx) => (
+                                      <span 
+                                        key={idx} 
+                                        className="badge" 
+                                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', fontSize: '0.6875rem' }}
+                                      >
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                )}
+                              </td>
+
+                              {/* 10. Actions (Under Actions Column) */}
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                  <button 
+                                    type="button"
+                                    className="btn-icon" 
+                                    style={{ width: '26px', height: '26px', color: 'var(--primary)' }} 
+                                    onClick={() => setMoveTargetTask(sub)}
+                                    title="Change or remove from Event"
+                                  >
+                                    <FolderOutput size={13} />
+                                  </button>
+
+                                  <button 
+                                    type="button"
+                                    className="btn-icon" 
+                                    style={{ width: '26px', height: '26px' }} 
+                                    onClick={() => onEditTask(sub)}
+                                    title="Edit Task"
+                                  >
+                                    <Edit3 size={13} />
+                                  </button>
+
+                                  <button 
+                                    type="button" 
+                                    className="btn-icon" 
+                                    style={{ width: '26px', height: '26px', color: 'var(--priority-urgent)' }} 
+                                    onClick={() => deleteTask(sub.id)}
+                                    title="Delete Task"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {/* Inline Add Task Row */}
+                        <tr className="event-table-add-row" style={{ background: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td colSpan={10} style={{ padding: '6px 20px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
+                              onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
+                            >
+                              <Plus size={12} />
+                              <span>Add Task to this Event</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </>
+                    )
                   )}
                 </React.Fragment>
               );
