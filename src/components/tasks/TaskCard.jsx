@@ -180,8 +180,8 @@ export const TaskCard = ({ task, onEdit }) => {
               className="btn-icon" 
               style={{ width: '28px', height: '28px', color: task.eventId ? 'var(--primary)' : 'var(--text-muted)' }} 
               onClick={() => setShowMoveModal(true)}
-              title={task.eventId ? `Change or remove from Event Folder (${parentEvent?.title || 'Event'})` : "Move into an Event Folder"}
-              aria-label="Move task to event folder"
+              title={task.eventId ? `Change or remove from Event (${parentEvent?.title || 'Event'})` : "Move into an Event"}
+              aria-label="Move task to event"
             >
               {task.eventId ? <FolderOutput size={13} /> : <FolderInput size={13} />}
             </button>
@@ -453,7 +453,7 @@ export const TaskCard = ({ task, onEdit }) => {
                 alignItems: 'center',
                 gap: '4px'
               }}
-              title={`Part of Event Folder: ${parentEvent.title}`}
+              title={`Part of Event: ${parentEvent.title}`}
             >
               <FolderKanban size={10} />
               <span>{parentEvent.title}</span>

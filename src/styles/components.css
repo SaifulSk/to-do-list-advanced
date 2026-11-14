@@ -2754,7 +2754,7 @@
 }
 
 /* ==========================================================================
-   Event Tasks & Folders System
+   Event Tasks System
    ========================================================================== */
 
 .form-row-2col {
@@ -2773,21 +2773,25 @@
   animation: fadeIn 0.2s ease-out;
 }
 
+.event-card,
 .event-folder-card {
   position: relative;
   overflow: visible !important;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
+.event-card.has-floating-menu-open,
 .event-folder-card.has-floating-menu-open {
   z-index: 60 !important;
 }
 
+.event-card:hover,
 .event-folder-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--primary-border);
 }
 
+.event-card.expanded,
 .event-folder-card.expanded {
   box-shadow: var(--shadow-md);
 }
@@ -2808,6 +2812,33 @@
 
 .event-subtasks-shelf {
   position: relative;
+}
+
+.event-table-row {
+  transition: background var(--transition-fast);
+}
+
+.event-table-row:hover {
+  background: var(--bg-hover) !important;
+}
+
+.event-table-expanded-row td {
+  padding: 10px 18px !important;
+  background: var(--bg-app) !important;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.nav-new-event-btn {
+  font-size: 0.8125rem;
+  padding: 7px 12px;
+}
+@media (max-width: 640px) {
+  .nav-new-event-btn span {
+    display: none;
+  }
+  .nav-new-event-btn {
+    padding: 8px !important;
+  }
 }
 
 /* Event Tag in Calendar Event Pill */

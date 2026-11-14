@@ -15,7 +15,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { CalendarDayModal } from './CalendarDayModal';
 
-export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
+export const CalendarView = ({ 
+  onOpenNewTask, 
+  onEditTask,
+  onOpenNewEvent,
+  onOpenNewTaskForEvent
+}) => {
   const { tasks, taskTypeTab, isTaskScheduledOnDate, setRecurringDate } = useTasks();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -39,6 +44,8 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
 
     if (taskTypeTab === 'recurring') {
       const recurringTasks = tasks.filter((t) => !t.isEvent && !t.eventId && t.recurrence && t.recurrence !== 'none');
+      const recurringEvents = tasks.filter((t) => t.isEvent && (t.eventType === 'recurring' || (t.recurrence && t.recurrence !== 'none')));
+
       calendarDays.forEach((day) => {
         const dayKey = format(day, 'yyyy-MM-dd');
         recurringTasks.forEach((task) => {
@@ -47,29 +54,37 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
             map[dayKey].push({ type: 'recurring', task });
           }
         });
+
+        recurringEvents.forEach((event) => {
+          const hasScheduledSubtasks = tasks.some((sub) => sub.eventId === event.id && isTaskScheduledOnDate && isTaskScheduledOnDate(sub, dayKey));
+          const isEventScheduled = (event.recurrence && event.recurrence !== 'none') ? isTaskScheduledOnDate(event, dayKey) : true;
+          if (hasScheduledSubtasks || isEventScheduled) {
+            if (!map[dayKey]) map[dayKey] = [];
+            map[dayKey].push({ type: 'event', task: event });
+          }
+        });
       });
       return map;
     }
 
-    if (taskTypeTab === 'event') {
-      const eventTasks = tasks.filter((t) => t.isEvent);
-      eventTasks.forEach((event) => {
-        const startKey = event.startDate ? event.startDate.split('T')[0] : null;
-        const endKey = (event.endDate || event.dueDate) ? (event.endDate || event.dueDate).split('T')[0] : null;
-
-        if (startKey) {
-          if (!map[startKey]) map[startKey] = [];
-          map[startKey].push({ type: 'event', task: event });
-        }
-        if (endKey && endKey !== startKey) {
-          if (!map[endKey]) map[endKey] = [];
-          map[endKey].push({ type: 'event', task: event });
-        }
-      });
-      return map;
-    }
-
+    // Normal Tasks Tab
     const normalTasks = tasks.filter((t) => !t.isEvent && !t.eventId && (!t.recurrence || t.recurrence === 'none'));
+    const normalEvents = tasks.filter((t) => t.isEvent && (!t.eventType || t.eventType === 'normal' || (!t.recurrence || t.recurrence === 'none')));
+
+    normalEvents.forEach((event) => {
+      const startKey = event.startDate ? event.startDate.split('T')[0] : null;
+      const endKey = (event.endDate || event.dueDate) ? (event.endDate || event.dueDate).split('T')[0] : null;
+
+      if (startKey) {
+        if (!map[startKey]) map[startKey] = [];
+        map[startKey].push({ type: 'event', task: event });
+      }
+      if (endKey && endKey !== startKey) {
+        if (!map[endKey]) map[endKey] = [];
+        map[endKey].push({ type: 'event', task: event });
+      }
+    });
+
     normalTasks.forEach((task) => {
       // 1. Task Created Date
       if (task.createdAt) {
@@ -256,6 +271,8 @@ export const CalendarView = ({ onOpenNewTask, onEditTask }) => {
         tasksForDay={selectedDayItems}
         onAddTaskForDate={(dateStr) => onOpenNewTask(dateStr)}
         onEditTask={onEditTask}
+        onOpenNewEvent={onOpenNewEvent}
+        onOpenNewTaskForEvent={onOpenNewTaskForEvent}
       />
     </div>
   );

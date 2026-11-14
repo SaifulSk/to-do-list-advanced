@@ -26,6 +26,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
 import { MoveTaskEventModal } from '../events/MoveTaskEventModal';
+import { EventCard } from '../events/EventCard';
 
 export const CalendarDayModal = ({ 
   isOpen, 
@@ -33,7 +34,9 @@ export const CalendarDayModal = ({
   selectedDate, 
   tasksForDay = [], 
   onAddTaskForDate, 
-  onEditTask 
+  onEditTask,
+  onOpenNewEvent,
+  onOpenNewTaskForEvent
 }) => {
   const { 
     tasks, 
@@ -146,7 +149,7 @@ export const CalendarDayModal = ({
                   e.stopPropagation();
                   setMoveTargetTask(currentTask);
                 }}
-                title={currentTask.eventId ? "Change or remove from Event Folder" : "Move into an Event Folder"}
+                title={currentTask.eventId ? "Change or remove from Event" : "Move into an Event"}
               >
                 {currentTask.eventId ? <FolderOutput size={13} /> : <FolderInput size={13} />}
               </button>
@@ -369,21 +372,36 @@ export const CalendarDayModal = ({
 
         <div className="modal-body" style={{ flex: 1, overflowY: 'auto' }}>
           {/* Quick Action */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '8px' }}>
             <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               Tasks schedule & timeline for this day
             </span>
-            <button 
-              className="btn btn-primary"
-              style={{ padding: '6px 12px', fontSize: '0.8125rem' }}
-              onClick={() => {
-                onClose();
-                onAddTaskForDate(dateStr);
-              }}
-            >
-              <Plus size={14} />
-              <span>Add Task on this Date</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                className="btn btn-primary"
+                style={{ padding: '6px 12px', fontSize: '0.8125rem' }}
+                onClick={() => {
+                  onClose();
+                  onAddTaskForDate(dateStr);
+                }}
+              >
+                <Plus size={14} />
+                <span>Add Task</span>
+              </button>
+              {onOpenNewEvent && (
+                <button 
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.8125rem' }}
+                  onClick={() => {
+                    onClose();
+                    onOpenNewEvent();
+                  }}
+                >
+                  <Calendar size={14} />
+                  <span>Add Event</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Recurring Tasks For This Day */}
@@ -402,18 +420,28 @@ export const CalendarDayModal = ({
             </div>
           )}
 
-          {/* Event Tasks For This Day */}
+          {/* Event Tasks For This Day (Rendered in List View Format) */}
           {eventTasksForDay.length > 0 && (
             <div style={{ marginTop: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                 <div className="legend-dot" style={{ background: '#ec4899' }} />
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#ec4899', margin: 0 }}>
-                  Event Tasks on this day ({eventTasksForDay.length})
+                  Events on this day ({eventTasksForDay.length})
                 </h4>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {eventTasksForDay.map((item) => renderTaskCard(item))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {eventTasksForDay.map((item) => (
+                  <EventCard 
+                    key={`event-${item.task.id}`}
+                    event={item.task}
+                    dateStr={dateStr}
+                    onEditEvent={onEditTask}
+                    onOpenNewTaskForEvent={onOpenNewTaskForEvent}
+                    onEditTask={onEditTask}
+                    initialExpanded={true}
+                  />
+                ))}
               </div>
             </div>
           )}

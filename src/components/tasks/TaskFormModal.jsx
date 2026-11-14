@@ -642,12 +642,12 @@ export const TaskFormModal = ({
               </div>
             </div>
 
-            {/* Belongs to Event Folder (Optional) */}
+            {/* Belongs to Event (Optional) */}
             {eventTasks && eventTasks.length > 0 && (
               <div className="form-group" style={{ marginTop: '12px' }}>
                 <label className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <FolderKanban size={14} color="var(--primary)" />
-                  <span>Belongs to Event Folder (Optional)</span>
+                  <Calendar size={14} color="var(--primary)" />
+                  <span>Belongs to Event (Optional)</span>
                 </label>
                 <select
                   className="select"
@@ -657,7 +657,7 @@ export const TaskFormModal = ({
                   <option value="">None (Standalone Task)</option>
                   {eventTasks.map((evt) => (
                     <option key={evt.id} value={evt.id}>
-                      📁 {evt.title}
+                      🗓️ {evt.title} ({evt.eventType === 'recurring' ? 'Recurring Event' : 'Event'})
                     </option>
                   ))}
                 </select>

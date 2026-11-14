@@ -419,7 +419,7 @@ export const TaskProvider = ({ children }) => {
   }, [currentUser?.uid]);
 
   const setAccountDefaultTaskType = async (type) => {
-    if (type !== 'normal' && type !== 'recurring' && type !== 'event') return;
+    if (type !== 'normal' && type !== 'recurring') return;
     setDefaultTaskType(type);
     localStorage.setItem('zenith_default_task_type', type);
     if (currentUser?.uid) {
@@ -926,14 +926,24 @@ export const TaskProvider = ({ children }) => {
     });
   };
 
-  // Segmentation: Normal vs Recurring vs Event tasks (tasks inside event folders are scoped to their event)
-  const normalTasks = useMemo(() => {
-    return tasks.filter((t) => !t.isEvent && !t.eventId && (!t.recurrence || t.recurrence === 'none'));
+  // Segmentation: Normal vs Recurring tasks & events (tasks inside events are scoped to their parent event)
+  const normalEvents = useMemo(() => {
+    return tasks.filter((t) => t.isEvent && (!t.eventType || t.eventType === 'normal' || (!t.recurrence || t.recurrence === 'none')));
   }, [tasks]);
 
-  const recurringTasks = useMemo(() => {
-    return tasks.filter((t) => !t.isEvent && !t.eventId && t.recurrence && t.recurrence !== 'none');
+  const recurringEvents = useMemo(() => {
+    return tasks.filter((t) => t.isEvent && (t.eventType === 'recurring' || (t.recurrence && t.recurrence !== 'none')));
   }, [tasks]);
+
+  const normalTasks = useMemo(() => {
+    const standalone = tasks.filter((t) => !t.isEvent && !t.eventId && (!t.recurrence || t.recurrence === 'none'));
+    return [...normalEvents, ...standalone];
+  }, [tasks, normalEvents]);
+
+  const recurringTasks = useMemo(() => {
+    const standalone = tasks.filter((t) => !t.isEvent && !t.eventId && t.recurrence && t.recurrence !== 'none');
+    return [...recurringEvents, ...standalone];
+  }, [tasks, recurringEvents]);
 
   const eventTasks = useMemo(() => {
     return tasks.filter((t) => Boolean(t.isEvent));
@@ -960,15 +970,25 @@ export const TaskProvider = ({ children }) => {
     await deleteTask(eventId);
   };
 
-  // Filtered and Sorted Tasks (Filtered according to active tab: normal vs recurring on recurringDate vs event)
+  // Filtered and Sorted Tasks (Filtered according to active tab: normal vs recurring on recurringDate)
   const filteredTasks = useMemo(() => {
     let baseTasks;
     if (taskTypeTab === 'normal') {
       baseTasks = normalTasks;
     } else if (taskTypeTab === 'recurring') {
-      baseTasks = recurringTasks.filter((task) => isTaskScheduledOnDate(task, recurringDate));
+      baseTasks = recurringTasks.filter((task) => {
+        if (task.isEvent) {
+          if (task.recurrence && task.recurrence !== 'none') {
+            return isTaskScheduledOnDate(task, recurringDate);
+          }
+          const childTasks = tasks.filter((c) => c.eventId === task.id);
+          if (childTasks.length === 0) return true;
+          return childTasks.some((c) => isTaskScheduledOnDate(c, recurringDate));
+        }
+        return isTaskScheduledOnDate(task, recurringDate);
+      });
     } else {
-      baseTasks = eventTasks;
+      baseTasks = normalTasks;
     }
 
     return baseTasks
@@ -983,7 +1003,8 @@ export const TaskProvider = ({ children }) => {
           const matchTags = task.tags?.some((t) => t.toLowerCase().includes(q));
           const matchSubtask = task.isEvent && tasks.some((sub) => sub.eventId === task.id && (
             sub.title?.toLowerCase().includes(q) ||
-            sub.description?.toLowerCase().includes(q)
+            sub.description?.toLowerCase().includes(q) ||
+            sub.assignedTo?.name?.toLowerCase().includes(q)
           ));
           if (!matchTitle && !matchDesc && !matchAssignee && !matchHelper && !matchTags && !matchSubtask) {
             return false;
@@ -996,7 +1017,26 @@ export const TaskProvider = ({ children }) => {
         }
 
         // Status Filter
-        if (taskTypeTab === 'recurring') {
+        if (task.isEvent) {
+          const childTasks = tasks.filter((t) => t.eventId === task.id);
+          let isCompleted = false;
+          let isInProgress = false;
+          if (taskTypeTab === 'recurring') {
+            const scheduledChildren = childTasks.filter((c) => isTaskScheduledOnDate(c, recurringDate));
+            const doneChildren = scheduledChildren.filter((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate));
+            isCompleted = scheduledChildren.length > 0 && doneChildren.length === scheduledChildren.length;
+            isInProgress = !isCompleted && doneChildren.length > 0;
+          } else {
+            isCompleted = task.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
+            const hasSomeDone = childTasks.some((c) => c.status === 'completed' || c.status === 'in_progress');
+            isInProgress = !isCompleted && (task.status === 'in_progress' || hasSomeDone);
+          }
+
+          if (filterStatus === 'todo' && (isCompleted || isInProgress)) return false;
+          if (filterStatus === 'in_progress' && !isInProgress) return false;
+          if (filterStatus === 'active' && isCompleted) return false;
+          if (filterStatus === 'completed' && !isCompleted) return false;
+        } else if (taskTypeTab === 'recurring') {
           const isDoneOnDate = Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate);
           const stepsDoneCount = Array.isArray(task.completedStepsByDate?.[recurringDate]) ? task.completedStepsByDate[recurringDate].length : 0;
           const totalStepsCount = Array.isArray(task.steps) ? task.steps.length : 0;
@@ -1006,16 +1046,6 @@ export const TaskProvider = ({ children }) => {
           if (filterStatus === 'in_progress' && !isInProgressOnDate) return false;
           if (filterStatus === 'active' && isDoneOnDate) return false;
           if (filterStatus === 'completed' && !isDoneOnDate) return false;
-        } else if (taskTypeTab === 'event') {
-          const childTasks = tasks.filter((t) => t.eventId === task.id);
-          const isCompleted = task.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
-          const hasSomeDone = childTasks.some((c) => c.status === 'completed' || c.status === 'in_progress');
-          const isInProgress = !isCompleted && (task.status === 'in_progress' || hasSomeDone);
-
-          if (filterStatus === 'todo' && (isCompleted || isInProgress)) return false;
-          if (filterStatus === 'in_progress' && !isInProgress) return false;
-          if (filterStatus === 'active' && isCompleted) return false;
-          if (filterStatus === 'completed' && !isCompleted) return false;
         } else {
           if (filterStatus === 'todo' && task.status !== 'todo') return false;
           if (filterStatus === 'in_progress' && task.status !== 'in_progress') return false;
@@ -1054,7 +1084,7 @@ export const TaskProvider = ({ children }) => {
 
         return sortOrder === 'asc' ? compare : -compare;
       });
-  }, [taskTypeTab, normalTasks, recurringTasks, eventTasks, tasks, recurringDate, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder]);
+  }, [taskTypeTab, normalTasks, recurringTasks, tasks, recurringDate, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder, isTaskScheduledOnDate]);
 
   // Combined all assignees from tasks + Assignee Master
   const allAssignees = useMemo(() => {
@@ -1066,7 +1096,7 @@ export const TaskProvider = ({ children }) => {
     return Array.from(set);
   }, [tasks, assignees]);
 
-  // Metrics for Stats Bar: reflects the active tab (Normal vs Recurring on recurringDate vs Events)
+  // Metrics for Stats Bar: reflects the active tab (Normal vs Recurring on recurringDate)
   const stats = useMemo(() => {
     let total = 0;
     let completed = 0;
@@ -1079,44 +1109,73 @@ export const TaskProvider = ({ children }) => {
 
     if (taskTypeTab === 'normal') {
       total = normalTasks.length;
-      completed = normalTasks.filter((t) => t.status === 'completed').length;
-      inProgress = normalTasks.filter((t) => t.status === 'in_progress').length;
-      needHelp = normalTasks.filter((t) => t.needHelpFrom && t.needHelpFrom.name && t.status !== 'completed').length;
+      completed = normalTasks.filter((t) => {
+        if (t.isEvent) {
+          const children = tasks.filter((c) => c.eventId === t.id);
+          return t.status === 'completed' || (children.length > 0 && children.every((c) => c.status === 'completed'));
+        }
+        return t.status === 'completed';
+      }).length;
+
+      inProgress = normalTasks.filter((t) => {
+        if (t.isEvent) {
+          const children = tasks.filter((c) => c.eventId === t.id);
+          const doneCount = children.filter((c) => c.status === 'completed').length;
+          return t.status === 'in_progress' || (doneCount > 0 && doneCount < children.length);
+        }
+        return t.status === 'in_progress';
+      }).length;
+
+      needHelp = normalTasks.filter((t) => {
+        if (t.isEvent) {
+          return (t.needHelpFrom && t.needHelpFrom.name) || tasks.some((c) => c.eventId === t.id && c.needHelpFrom && c.needHelpFrom.name);
+        }
+        return t.needHelpFrom && t.needHelpFrom.name && t.status !== 'completed';
+      }).length;
 
       dueSoon = normalTasks.filter((t) => {
-        if (t.status === 'completed' || !t.dueDate) return false;
-        const dueTimestamp = new Date(t.dueDate).getTime();
+        const targetDate = t.endDate || t.dueDate;
+        if (!targetDate || t.status === 'completed') return false;
+        const dueTimestamp = new Date(targetDate).getTime();
         return dueTimestamp <= todayTimestamp + 86400000 * 2;
       }).length;
-    } else if (taskTypeTab === 'recurring') {
+    } else {
       // In Recurring tab: stats on the selected recurringDate
-      const scheduledOnDate = recurringTasks.filter((t) => isTaskScheduledOnDate(t, recurringDate));
+      const scheduledOnDate = recurringTasks.filter((t) => {
+        if (t.isEvent) {
+          if (t.recurrence && t.recurrence !== 'none') return isTaskScheduledOnDate(t, recurringDate);
+          const children = tasks.filter((c) => c.eventId === t.id);
+          if (children.length === 0) return true;
+          return children.some((c) => isTaskScheduledOnDate(c, recurringDate));
+        }
+        return isTaskScheduledOnDate(t, recurringDate);
+      });
+
       total = scheduledOnDate.length;
-      completed = scheduledOnDate.filter((t) => Array.isArray(t.completedDates) && t.completedDates.includes(recurringDate)).length;
+      completed = scheduledOnDate.filter((t) => {
+        if (t.isEvent) {
+          const children = tasks.filter((c) => c.eventId === t.id && isTaskScheduledOnDate(c, recurringDate));
+          return children.length > 0 && children.every((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate));
+        }
+        return Array.isArray(t.completedDates) && t.completedDates.includes(recurringDate);
+      }).length;
+
       inProgress = scheduledOnDate.filter((t) => {
+        if (t.isEvent) {
+          const children = tasks.filter((c) => c.eventId === t.id && isTaskScheduledOnDate(c, recurringDate));
+          const doneCount = children.filter((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate)).length;
+          return doneCount > 0 && doneCount < children.length;
+        }
         const isDone = Array.isArray(t.completedDates) && t.completedDates.includes(recurringDate);
         const stepsDone = Array.isArray(t.completedStepsByDate?.[recurringDate]) ? t.completedStepsByDate[recurringDate].length : 0;
         return !isDone && stepsDone > 0;
       }).length;
-      needHelp = scheduledOnDate.filter((t) => t.needHelpFrom && t.needHelpFrom.name).length;
-    } else {
-      // In Event tab: stats across all events
-      total = eventTasks.length;
-      completed = eventTasks.filter((e) => {
-        const childTasks = tasks.filter((t) => t.eventId === e.id);
-        return e.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
-      }).length;
-      inProgress = eventTasks.filter((e) => {
-        const childTasks = tasks.filter((t) => t.eventId === e.id);
-        const doneCount = childTasks.filter((c) => c.status === 'completed').length;
-        return e.status === 'in_progress' || (doneCount > 0 && doneCount < childTasks.length);
-      }).length;
-      needHelp = eventTasks.filter((e) => e.needHelpFrom && e.needHelpFrom.name && e.status !== 'completed').length;
-      dueSoon = eventTasks.filter((e) => {
-        const targetDate = e.endDate || e.dueDate;
-        if (e.status === 'completed' || !targetDate) return false;
-        const dueTimestamp = new Date(targetDate).getTime();
-        return dueTimestamp <= todayTimestamp + 86400000 * 2;
+
+      needHelp = scheduledOnDate.filter((t) => {
+        if (t.isEvent) {
+          return (t.needHelpFrom && t.needHelpFrom.name) || tasks.some((c) => c.eventId === t.id && c.needHelpFrom && c.needHelpFrom.name);
+        }
+        return t.needHelpFrom && t.needHelpFrom.name;
       }).length;
     }
 
@@ -1130,10 +1189,9 @@ export const TaskProvider = ({ children }) => {
       dueSoon, 
       completionRate,
       normalCount: normalTasks.length,
-      recurringCount: recurringTasks.length,
-      eventCount: eventTasks.length
+      recurringCount: recurringTasks.length
     };
-  }, [taskTypeTab, normalTasks, recurringTasks, eventTasks, tasks, recurringDate]);
+  }, [taskTypeTab, normalTasks, recurringTasks, tasks, recurringDate, isTaskScheduledOnDate]);
 
   const value = {
     tasks,

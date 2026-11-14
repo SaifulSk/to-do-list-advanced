@@ -4,6 +4,7 @@ import {
   List, 
   Table as TableIcon,
   Calendar as CalendarIcon, 
+  Calendar,
   Plus, 
   Sun, 
   Moon, 
@@ -20,6 +21,7 @@ export const Navbar = ({
   theme, 
   toggleTheme, 
   onOpenNewTask, 
+  onOpenNewEvent,
   onOpenAuth,
   onOpenAssigneeMaster
 }) => {
@@ -93,6 +95,19 @@ export const Navbar = ({
             <Users size={15} />
             <span>Team</span>
           </button>
+
+          {/* New Event Button */}
+          {onOpenNewEvent && (
+            <button 
+              className="btn btn-secondary nav-new-event-btn"
+              onClick={onOpenNewEvent}
+              title="Create a new Event"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Calendar size={15} />
+              <span>New Event</span>
+            </button>
+          )}
 
           {/* New Task Button */}
           <button 

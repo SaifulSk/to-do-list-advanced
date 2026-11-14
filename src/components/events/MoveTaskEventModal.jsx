@@ -2,12 +2,13 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
-  FolderKanban, 
+  Calendar, 
   FolderInput, 
   FolderOutput, 
   Check, 
-  FolderPlus,
-  AlertCircle
+  Plus,
+  AlertCircle,
+  Repeat
 } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 
@@ -17,6 +18,9 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
   if (!isOpen || !task) return null;
 
   const currentEvent = task.eventId ? eventTasks?.find((e) => e.id === task.eventId) : null;
+  const isTaskRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
+
+  // Find compatible events: matching recurrence or all events
   const otherEvents = (eventTasks || []).filter((e) => e.id !== task.eventId);
 
   const handleMoveTo = (targetEventId) => {
@@ -34,8 +38,8 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
         {/* Modal Header */}
         <div className="modal-header">
           <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FolderKanban size={18} color="var(--primary)" />
-            <span>Move Task to Event Folder</span>
+            <Calendar size={18} color="var(--primary)" />
+            <span>Move Task to Event</span>
           </div>
           <button type="button" className="btn-icon" onClick={onClose}>
             <X size={16} />
@@ -58,7 +62,7 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
             <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  Currently in: <strong style={{ color: currentEvent.color || 'var(--primary)' }}>📁 {currentEvent.title}</strong>
+                  Currently in: <strong style={{ color: currentEvent.color || 'var(--primary)' }}>🗓️ {currentEvent.title}</strong>
                 </span>
               </div>
               <button
@@ -83,21 +87,21 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
             </div>
           ) : (
             <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              Currently: <strong>Standalone Task</strong> (not assigned to any event folder)
+              Currently: <strong>Standalone Task</strong> (not assigned to any event)
             </div>
           )}
 
           {/* Destination Event Selection */}
           <div>
             <label className="form-label" style={{ marginBottom: '8px', fontWeight: 700 }}>
-              {task.eventId ? 'Or Move to Another Event Folder:' : 'Choose Destination Event Folder:'}
+              {task.eventId ? 'Or Move to Another Event:' : 'Choose Destination Event:'}
             </label>
 
             {(!eventTasks || eventTasks.length === 0) ? (
               <div style={{ padding: '20px 16px', textAlign: 'center', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
                 <AlertCircle size={22} style={{ margin: '0 auto 6px', opacity: 0.6 }} />
                 <p style={{ fontSize: '0.8125rem', margin: 0 }}>
-                  No event folders created yet.
+                  No events created yet.
                 </p>
                 {onOpenNewEvent && (
                   <button
@@ -109,14 +113,14 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
                       onOpenNewEvent();
                     }}
                   >
-                    <FolderPlus size={14} />
-                    <span>Create New Event Folder</span>
+                    <Plus size={14} />
+                    <span>Create New Event</span>
                   </button>
                 )}
               </div>
             ) : otherEvents.length === 0 ? (
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
-                No other event folders available.
+                No other events available.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
@@ -137,10 +141,15 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
                     onClick={() => handleMoveTo(evt.id)}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <FolderKanban size={16} style={{ color: evt.color || '#6366f1', flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>
-                        {evt.title}
-                      </span>
+                      <Calendar size={16} style={{ color: evt.color || '#6366f1', flexShrink: 0 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>
+                          {evt.title}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {evt.eventType === 'recurring' ? 'Recurring Event' : 'Normal Event'}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0 }}>
                       <span>Move</span>
@@ -156,7 +165,7 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
         {/* Modal Footer */}
         <div className="modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Cancel
+            Close
           </button>
         </div>
       </div>

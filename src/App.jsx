@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, Repeat, Star, FolderKanban } from 'lucide-react';
+import { CheckSquare, Repeat, Star } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
@@ -9,8 +9,6 @@ import { TaskListView } from './components/tasks/TaskListView';
 import { TaskTableView } from './components/tasks/TaskTableView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { RecurringDatePicker } from './components/tasks/RecurringDatePicker';
-import { RecurringTasksView } from './components/tasks/RecurringTasksView';
-import { EventTasksView } from './components/events/EventTasksView';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { EventFormModal } from './components/events/EventFormModal';
 import { AssigneeMasterModal } from './components/assignees/AssigneeMasterModal';
@@ -55,6 +53,7 @@ function MainLayout() {
   // Event modal state
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [eventModalDefaultType, setEventModalDefaultType] = useState('normal');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -95,13 +94,15 @@ function MainLayout() {
   };
 
   // Event handlers
-  const handleOpenNewEvent = () => {
+  const handleOpenNewEvent = (type = null) => {
     setEditingEvent(null);
+    setEventModalDefaultType(type || taskTypeTab || 'normal');
     setIsEventModalOpen(true);
   };
 
   const handleEditEvent = (event) => {
     setEditingEvent(event);
+    setEventModalDefaultType(event.eventType || (event.recurrence && event.recurrence !== 'none' ? 'recurring' : 'normal'));
     setIsEventModalOpen(true);
   };
 
@@ -137,13 +138,8 @@ function MainLayout() {
         defaultView={defaultView}
         theme={theme}
         toggleTheme={toggleTheme}
-        onOpenNewTask={() => {
-          if (taskTypeTab === 'event') {
-            handleOpenNewEvent();
-          } else {
-            handleOpenNewTask();
-          }
-        }}
+        onOpenNewTask={() => handleOpenNewTask()}
+        onOpenNewEvent={() => handleOpenNewEvent(taskTypeTab)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenAssigneeMaster={() => setIsAssigneeModalOpen(true)}
       />
@@ -219,37 +215,6 @@ function MainLayout() {
                 </span>
               </button>
 
-              <button 
-                type="button"
-                className={`task-type-tab ${taskTypeTab === 'event' ? 'active' : ''}`}
-                onClick={() => setTaskTypeTab('event')}
-                title="Event Tasks (Folders)"
-              >
-                <span className="task-type-tab-icon"><FolderKanban size={15} /></span>
-                <span className="task-type-label-desktop">Event Tasks</span>
-                <span className="task-type-label-mobile">Events</span>
-                <span className="task-type-badge">{eventTasks.length}</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className={`tab-default-star-btn ${defaultTaskType === 'event' ? 'is-default' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAccountDefaultTaskType('event');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setAccountDefaultTaskType('event');
-                    }
-                  }}
-                  title={defaultTaskType === 'event' ? "Default tab (opens on start)" : "Click to set Event Tasks as default"}
-                  aria-label={defaultTaskType === 'event' ? "Default tab" : "Set Event Tasks as default"}
-                >
-                  <Star size={13} fill={defaultTaskType === 'event' ? 'currentColor' : 'none'} />
-                </span>
-              </button>
             </div>
 
             {/* Extreme-Right on Desktop, Center-Aligned on Mobile */}
@@ -266,27 +231,26 @@ function MainLayout() {
 
         {/* Scrollable View Area (Only list/table items scroll) */}
         <div className={`workspace-scrollable-body view-${currentView}`}>
-          {taskTypeTab === 'event' && currentView !== 'calendar' ? (
-            <EventTasksView 
-              onEditEvent={handleEditEvent}
-              onOpenNewEvent={handleOpenNewEvent}
-              onOpenNewTaskForEvent={handleOpenNewTaskForEvent}
-              onEditTask={handleEditTask}
-            />
-          ) : currentView === 'list' ? (
+          {currentView === 'list' ? (
             <TaskListView 
               onEditTask={handleEditTask} 
               onOpenNewTask={handleOpenNewTask} 
+              onOpenNewEvent={() => handleOpenNewEvent(taskTypeTab)}
+              onOpenNewTaskForEvent={handleOpenNewTaskForEvent}
             />
           ) : currentView === 'table' ? (
             <TaskTableView 
               onEditTask={handleEditTask} 
               onOpenNewTask={handleOpenNewTask} 
+              onOpenNewEvent={() => handleOpenNewEvent(taskTypeTab)}
+              onOpenNewTaskForEvent={handleOpenNewTaskForEvent}
             />
           ) : (
             <CalendarView 
               onOpenNewTask={handleOpenNewTask} 
               onEditTask={handleEditTask} 
+              onOpenNewEvent={() => handleOpenNewEvent(taskTypeTab)}
+              onOpenNewTaskForEvent={handleOpenNewTaskForEvent}
             />
           )}
         </div>
@@ -307,6 +271,7 @@ function MainLayout() {
         isOpen={isEventModalOpen}
         onClose={handleCloseEventModal}
         initialEvent={editingEvent}
+        defaultEventType={eventModalDefaultType || taskTypeTab}
         onOpenAssigneeMaster={() => setIsAssigneeModalOpen(true)}
       />
 

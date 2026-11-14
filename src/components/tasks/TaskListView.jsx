@@ -1,9 +1,15 @@
 import React from 'react';
-import { CheckSquare, Plus, AlertCircle } from 'lucide-react';
+import { CheckSquare, Plus, AlertCircle, Calendar, Repeat } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { TaskCard } from './TaskCard';
+import { EventCard } from '../events/EventCard';
 
-export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
+export const TaskListView = ({ 
+  onEditTask, 
+  onOpenNewTask, 
+  onOpenNewEvent, 
+  onOpenNewTaskForEvent 
+}) => {
   const { 
     filteredTasks, 
     tasks, 
@@ -28,13 +34,19 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
         </div>
         <div>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>No tasks yet</h3>
-          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Get started by creating your first task.</p>
+          <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>Get started by creating your first task or event.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button className="btn btn-primary" onClick={onOpenNewTask}>
             <Plus size={16} />
             <span>Create Task</span>
           </button>
+          {onOpenNewEvent && (
+            <button className="btn btn-secondary" onClick={onOpenNewEvent}>
+              <Calendar size={16} />
+              <span>Create Event</span>
+            </button>
+          )}
         </div>
       </div>
     );
@@ -69,7 +81,7 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
     return (
       <div className="empty-state glass-panel">
         <div className="empty-state-icon">
-          <CheckSquare size={32} />
+          {taskTypeTab === 'recurring' ? <Repeat size={32} /> : <CheckSquare size={32} />}
         </div>
         <div>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>
@@ -77,15 +89,21 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
           </h3>
           <p style={{ fontSize: '0.875rem', marginTop: '4px' }}>
             {taskTypeTab === 'recurring'
-              ? 'Use the arrows above to navigate dates or create a recurring task.'
-              : 'Get started by creating your first task.'}
+              ? 'Use the date picker above or create a recurring task or recurring event.'
+              : 'Get started by creating your first task or event.'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button className="btn btn-primary" onClick={onOpenNewTask}>
             <Plus size={16} />
             <span>Create Task</span>
           </button>
+          {onOpenNewEvent && (
+            <button className="btn btn-secondary" onClick={onOpenNewEvent}>
+              <Calendar size={16} />
+              <span>Create Event</span>
+            </button>
+          )}
         </div>
       </div>
     );
@@ -94,7 +112,17 @@ export const TaskListView = ({ onEditTask, onOpenNewTask }) => {
   return (
     <div className="task-list">
       {filteredTasks.map((task) => (
-        <TaskCard key={task.id} task={task} onEdit={onEditTask} />
+        task.isEvent ? (
+          <EventCard 
+            key={task.id} 
+            event={task} 
+            onEditEvent={onEditTask} 
+            onOpenNewTaskForEvent={onOpenNewTaskForEvent} 
+            onEditTask={onEditTask} 
+          />
+        ) : (
+          <TaskCard key={task.id} task={task} onEdit={onEditTask} />
+        )
       ))}
     </div>
   );
