@@ -189,7 +189,7 @@ export const CalendarDayModal = ({
           )}
 
           {/* Multi-Step Checklist */}
-          {currentTask.hasSteps && Array.isArray(currentTask.steps) && currentTask.steps.length > 0 && (() => {
+          {Boolean((currentTask.hasSteps || (Array.isArray(currentTask.steps) && currentTask.steps.length > 0)) && Array.isArray(currentTask.steps) && currentTask.steps.length > 0) && (() => {
             const completedCount = isRecurring
               ? (currentTask.completedStepsByDate?.[dateStr]?.length || 0)
               : currentTask.steps.filter((s) => s.completed).length;

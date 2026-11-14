@@ -303,7 +303,7 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                   )}
 
                   {/* Multi-step checklist (if task has steps) */}
-                  {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
+                  {Boolean((task.hasSteps || (Array.isArray(task.steps) && task.steps.length > 0)) && Array.isArray(task.steps) && task.steps.length > 0) && (() => {
                     const completedCount = task.steps.filter((s) => s.completed).length;
                     const totalCount = task.steps.length;
                     const percentage = Math.round((completedCount / totalCount) * 100);

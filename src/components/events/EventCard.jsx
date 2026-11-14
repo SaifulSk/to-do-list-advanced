@@ -49,10 +49,17 @@ export const EventCard = ({
   } = useTasks();
 
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
-  const [activeStepsKey, setActiveStepsKey] = useState(null);
+  const [expandedStepTaskIds, setExpandedStepTaskIds] = useState({});
   const [deleteTargetEvent, setDeleteTargetEvent] = useState(null);
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
   const [moveTargetTask, setMoveTargetTask] = useState(null);
+
+  const toggleTaskSteps = (taskId) => {
+    setExpandedStepTaskIds((prev) => ({
+      ...prev,
+      [taskId]: !prev[taskId]
+    }));
+  };
 
   const effectiveDate = propDateStr || recurringDate;
   const isRecurringEvent = event.eventType === 'recurring' || Boolean(event.recurrence && event.recurrence !== 'none');
@@ -87,23 +94,9 @@ export const EventCard = ({
     return null;
   })();
 
-  // Close floating popover when clicking outside
-  useEffect(() => {
-    if (!activeStepsKey) return;
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.card-steps-section')) {
-        setActiveStepsKey(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [activeStepsKey]);
-
-  const hasFloatingMenuOpen = Boolean(activeStepsKey);
-
   return (
     <div 
-      className={`event-folder-card event-card ${isExpanded ? 'expanded' : ''} ${hasFloatingMenuOpen ? 'has-floating-menu-open' : ''}`}
+      className={`event-folder-card event-card ${isExpanded ? 'expanded' : ''}`}
       style={{
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
@@ -353,20 +346,18 @@ export const EventCard = ({
                   ? Boolean(task.completedDates?.includes(effectiveDate))
                   : task.status === 'completed';
 
-                const stepKey = `${event.id}-${task.id}`;
-                const isStepsOpen = activeStepsKey === stepKey;
+                const isStepsOpen = Boolean(expandedStepTaskIds[task.id]);
 
                 return (
                   <div 
                     key={task.id}
-                    className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''} ${isStepsOpen ? 'has-floating-menu-open' : ''}`}
+                    className={`task-card priority-${task.priority} ${isCompleted ? 'completed' : ''}`}
                     style={{ 
                       padding: '10px 14px', 
                       cursor: 'default',
                       background: 'var(--bg-surface)',
                       borderRadius: 'var(--radius-md)',
-                      position: 'relative',
-                      zIndex: isStepsOpen ? 80 : 1
+                      position: 'relative'
                     }}
                   >
                     {/* Checkbox */}
@@ -469,8 +460,8 @@ export const EventCard = ({
                         </p>
                       )}
 
-                      {/* Multi-step subtasks with interactive popover */}
-                      {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
+                      {/* Multi-step subtasks with inline expandable checklist */}
+                      {Boolean((task.hasSteps || (Array.isArray(task.steps) && task.steps.length > 0)) && Array.isArray(task.steps) && task.steps.length > 0) && (() => {
                         const stepCompletedCount = isRecurring
                           ? (task.completedStepsByDate?.[effectiveDate]?.length || 0)
                           : task.steps.filter((s) => s.completed).length;
@@ -480,15 +471,16 @@ export const EventCard = ({
                         return (
                           <div 
                             className={`card-steps-section ${isStepsOpen ? 'menu-open' : ''}`}
-                            style={{ marginTop: '6px' }}
+                            style={{ marginTop: '8px' }}
                           >
                             <div 
                               className="card-steps-header" 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setActiveStepsKey(isStepsOpen ? null : stepKey);
+                                toggleTaskSteps(task.id);
                               }}
-                              title={isStepsOpen ? "Close subtasks menu" : "Click to view subtasks"}
+                              title={isStepsOpen ? "Collapse steps checklist" : "Click to view subtask steps"}
+                              style={{ cursor: 'pointer' }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <ListChecks size={13} color="var(--primary)" />
@@ -499,76 +491,106 @@ export const EventCard = ({
                                   {stepPct}%
                                 </span>
                               </div>
-                              <button 
-                                type="button" 
-                                className="btn-icon" 
-                                style={{ width: '20px', height: '20px', padding: 0 }}
-                                aria-label={isStepsOpen ? "Close subtasks menu" : "Open subtasks menu"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveStepsKey(isStepsOpen ? null : stepKey);
-                                }}
-                              >
-                                {isStepsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <span>{isStepsOpen ? 'Hide' : 'View'}</span>
+                                <button 
+                                  type="button" 
+                                  className="btn-icon" 
+                                  style={{ width: '20px', height: '20px', padding: 0 }}
+                                  aria-label={isStepsOpen ? "Collapse steps checklist" : "Expand steps checklist"}
+                                >
+                                  {isStepsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Floating subtasks popover */}
+                            {/* Progress Bar (Always visible) */}
+                            <div className="card-steps-bar-track" style={{ height: '4px', background: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
+                              <div 
+                                className="card-steps-bar-fill" 
+                                style={{ 
+                                  width: `${stepPct}%`,
+                                  background: stepPct === 100 ? '#10b981' : 'var(--primary)',
+                                  height: '100%',
+                                  transition: 'width 0.3s ease'
+                                }} 
+                              />
+                            </div>
+
+                            {/* Inline Expandable Steps List */}
                             {isStepsOpen && (
                               <div 
-                                className="card-steps-floating-menu" 
+                                className="card-steps-inline-list" 
                                 onClick={(e) => e.stopPropagation()}
+                                style={{ 
+                                  marginTop: '8px', 
+                                  paddingTop: '8px', 
+                                  borderTop: '1px solid var(--border-subtle)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '5px'
+                                }}
                               >
-                                <div className="card-steps-floating-header">
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <ListChecks size={13} color="var(--primary)" />
-                                    <span className="card-steps-floating-title">Subtasks</span>
-                                    <span className={`card-steps-pill ${stepPct === 100 ? 'done' : ''}`}>
-                                      {stepCompletedCount}/{stepTotalCount} ({stepPct}%)
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className="btn-icon card-steps-floating-close"
-                                    onClick={() => setActiveStepsKey(null)}
-                                    title="Close"
-                                    aria-label="Close subtasks menu"
-                                  >
-                                    <X size={13} />
-                                  </button>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <ListChecks size={12} color="var(--primary)" />
+                                    <span>Subtasks Checklist</span>
+                                  </span>
+                                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                                    {stepCompletedCount} of {stepTotalCount} done
+                                  </span>
                                 </div>
 
-                                <div className="card-steps-floating-list">
-                                  {task.steps.map((step, idx) => {
-                                    const isStepDone = isRecurring
-                                      ? Boolean(task.completedStepsByDate?.[effectiveDate]?.includes(step.id))
-                                      : Boolean(step.completed);
+                                {task.steps.map((step, idx) => {
+                                  const isStepDone = isRecurring
+                                    ? Boolean(task.completedStepsByDate?.[effectiveDate]?.includes(step.id))
+                                    : Boolean(step.completed);
 
-                                    return (
+                                  return (
+                                    <div 
+                                      key={step.id || idx}
+                                      className={`card-step-row ${isStepDone ? 'completed' : ''}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isRecurring) {
+                                          toggleTaskStep(task.id, step.id, effectiveDate);
+                                        } else {
+                                          toggleTaskStep(task.id, step.id);
+                                        }
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '6px 8px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        background: isStepDone ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-surface)',
+                                        border: '1px solid var(--border-subtle)',
+                                        transition: 'background var(--transition-fast)'
+                                      }}
+                                    >
                                       <div 
-                                        key={step.id || idx}
-                                        className={`card-step-row ${isStepDone ? 'completed' : ''}`}
-                                        onClick={() => {
-                                          if (isRecurring) {
-                                            toggleTaskStep(task.id, step.id, effectiveDate);
-                                          } else {
-                                            toggleTaskStep(task.id, step.id);
-                                          }
+                                        className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
+                                        title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
+                                        style={{ width: '16px', height: '16px', flexShrink: 0 }}
+                                      >
+                                        {isStepDone && <Check size={11} />}
+                                      </div>
+                                      <span 
+                                        className="card-step-text"
+                                        style={{ 
+                                          fontSize: '0.8125rem',
+                                          color: isStepDone ? 'var(--text-muted)' : 'var(--text-main)',
+                                          textDecoration: isStepDone ? 'line-through' : 'none',
+                                          lineHeight: 1.3
                                         }}
                                       >
-                                        <div 
-                                          className={`custom-checkbox card-step-checkbox ${isStepDone ? 'checked' : ''}`}
-                                          title={isStepDone ? "Mark step incomplete" : "Mark step complete"}
-                                        >
-                                          {isStepDone && <Check size={10} />}
-                                        </div>
-                                        <span className="card-step-text">
-                                          {step.title}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                                        {step.title}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

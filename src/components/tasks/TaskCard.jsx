@@ -210,7 +210,7 @@ export const TaskCard = ({ task, onEdit }) => {
         )}
 
         {/* Multi-Step Checklist */}
-        {task.hasSteps && Array.isArray(task.steps) && task.steps.length > 0 && (() => {
+        {Boolean((task.hasSteps || (Array.isArray(task.steps) && task.steps.length > 0)) && Array.isArray(task.steps) && task.steps.length > 0) && (() => {
           const completedCount = isRecurring
             ? (task.completedStepsByDate?.[recurringDate]?.length || 0)
             : task.steps.filter((s) => s.completed).length;

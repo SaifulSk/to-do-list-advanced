@@ -2222,6 +2222,10 @@
   color: var(--text-muted);
 }
 
+.card-steps-inline-list {
+  animation: fadeIn 0.15s ease-out;
+}
+
 /* Table View Steps */
 .table-steps-container {
   margin-top: 6px;
