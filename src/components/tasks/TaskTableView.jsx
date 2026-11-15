@@ -209,7 +209,7 @@ export const TaskTableView = ({
     );
   }
 
-  const colCount = (taskTypeTab === 'normal' || taskTypeTab === 'recurring') ? 9 : 10;
+  const colCount = (taskTypeTab === 'normal' || taskTypeTab === 'recurring') ? 7 : 8;
 
   return (
     <div className="task-table-container">
@@ -223,9 +223,7 @@ export const TaskTableView = ({
             {taskTypeTab !== 'recurring' && <th style={{ width: '140px' }}>Due Date</th>}
             {taskTypeTab !== 'normal' && <th style={{ width: '110px' }}>Recurrence</th>}
             <th style={{ width: '110px' }}>Amount</th>
-            <th style={{ width: '160px' }}>Assignee</th>
-            <th style={{ width: '120px' }}>Tags</th>
-            <th style={{ width: '110px', textAlign: 'right' }}>Actions</th>
+            <th style={{ width: '140px', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -341,15 +339,20 @@ export const TaskTableView = ({
                     {/* Amount - Blank for event row */}
                     <td></td>
 
-                    {/* Assignee - Blank for event row */}
-                    <td></td>
-
-                    {/* Tags - Blank for event row */}
-                    <td></td>
-
                     {/* Actions */}
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '5px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '0.6875rem', gap: '3px' }}
+                          onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
+                          title="Add Task to this Event"
+                        >
+                          <Plus size={11} />
+                          <span>Add Task</span>
+                        </button>
+
                         <button 
                           type="button"
                           className="btn-icon" 
@@ -600,38 +603,7 @@ export const TaskTableView = ({
                                 )}
                               </td>
 
-                              {/* 8. Assignee / Collaborator (Need Help) */}
-                              <td>
-                                {sub.needHelpFrom && sub.needHelpFrom.name ? (
-                                  <div className="helper-chip" style={{ width: 'fit-content', padding: '2px 6px', fontSize: '0.6875rem' }}>
-                                    <Users size={10} />
-                                    <span>{sub.needHelpFrom.name}</span>
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                                )}
-                              </td>
-
-                              {/* 9. Tags (Under Tags Column) */}
-                              <td>
-                                {sub.tags && sub.tags.length > 0 ? (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                    {sub.tags.map((tag, idx) => (
-                                      <span 
-                                        key={idx} 
-                                        className="badge" 
-                                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', fontSize: '0.6875rem' }}
-                                      >
-                                        #{tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                                )}
-                              </td>
-
-                              {/* 10. Actions (Under Actions Column) */}
+                              {/* Actions (Under Actions Column) */}
                               <td style={{ textAlign: 'right' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                                   <button 
@@ -905,37 +877,6 @@ export const TaskTableView = ({
                       <Banknote size={12} />
                       <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
                     </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                  )}
-                </td>
-
-                {/* Assignee / Collaborator (Need Help) */}
-                <td>
-                  {task.needHelpFrom && task.needHelpFrom.name ? (
-                    <div className="helper-chip" style={{ width: 'fit-content', padding: '2px 6px', fontSize: '0.6875rem' }}>
-                      <Users size={10} />
-                      <span>{task.needHelpFrom.name}</span>
-                    </div>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                  )}
-                </td>
-
-                {/* Tags */}
-                <td>
-                  {task.tags && task.tags.length > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {task.tags.map((tag, idx) => (
-                        <span 
-                          key={idx} 
-                          className="badge" 
-                          style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', fontSize: '0.6875rem' }}
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
                   ) : (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                   )}
