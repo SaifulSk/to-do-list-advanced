@@ -394,8 +394,8 @@ export const TaskCard = ({ task, onEdit, isInsideEvent = false, dateStr = null }
             </span>
           )}
 
-          {/* Recurrence Badge (hidden when inside an event) */}
-          {!isInsideEvent && task.recurrence && task.recurrence !== 'none' && (
+          {/* Recurrence Badge */}
+          {task.recurrence && task.recurrence !== 'none' && (
             <span className="badge badge-recurrence" title={`Recurring: ${getRecurrenceLabel(task)}`}>
               <Repeat size={11} />
               <span>{getRecurrenceLabel(task)}</span>
@@ -403,7 +403,7 @@ export const TaskCard = ({ task, onEdit, isInsideEvent = false, dateStr = null }
           )}
 
           {/* Stopped Recurrence Badge */}
-          {!isInsideEvent && task.isRecurringStopped && (
+          {task.isRecurringStopped && (
             <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.6875rem' }}>
               ⏸ Stopped
             </span>

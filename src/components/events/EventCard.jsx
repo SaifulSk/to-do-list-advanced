@@ -26,7 +26,8 @@ export const EventCard = ({
   const { 
     tasks, 
     deleteEvent, 
-    recurringDate 
+    recurringDate,
+    isTaskScheduledOnDate
   } = useTasks();
 
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
@@ -38,7 +39,17 @@ export const EventCard = ({
   const accentColor = event.color || '#6366f1';
 
   // Child tasks belonging to this event
-  const childTasks = tasks.filter((t) => t.eventId === event.id);
+  const allChildTasks = tasks.filter((t) => t.eventId === event.id);
+
+  // If this is a recurring event, only show subtasks scheduled on effectiveDate
+  const childTasks = isRecurringEvent
+    ? allChildTasks.filter((t) => {
+        if (t.recurrence && t.recurrence !== 'none') {
+          return isTaskScheduledOnDate ? isTaskScheduledOnDate(t, effectiveDate) : true;
+        }
+        return true;
+      })
+    : allChildTasks;
 
   // Completion calculation
   const totalSubtasks = childTasks.length;
@@ -246,7 +257,9 @@ export const EventCard = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-              {totalSubtasks === 0 ? 'No tasks yet' : `${completedSubtasks} of ${totalSubtasks} tasks completed`}
+              {totalSubtasks === 0 
+                ? (isRecurringEvent ? 'No tasks scheduled for this day' : 'No tasks yet') 
+                : `${completedSubtasks} of ${totalSubtasks} tasks completed`}
             </span>
           </div>
           <span style={{ fontWeight: 700, color: percentage === 100 ? '#10b981' : accentColor }}>
@@ -297,7 +310,7 @@ export const EventCard = ({
               }}
             >
               <p style={{ fontSize: '0.8125rem', margin: '0 0 10px' }}>
-                No tasks in this event yet.
+                {isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'}
               </p>
               <button 
                 type="button"

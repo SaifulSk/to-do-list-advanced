@@ -229,8 +229,28 @@ export const TaskFormModal = ({
     );
   };
 
+  const isTaskRecurring = recurrence && recurrence !== 'none';
+  const compatibleEvents = (eventTasks || []).filter((evt) => {
+    const isEvtRecurring = evt.eventType === 'recurring' || (!evt.eventType && evt.recurrence && evt.recurrence !== 'none');
+    return isTaskRecurring ? isEvtRecurring : !isEvtRecurring;
+  });
+
+  const handleRecurrenceChange = (newRecurrence) => {
+    setRecurrence(newRecurrence);
+    const newIsRecurring = newRecurrence && newRecurrence !== 'none';
+    if (eventId) {
+      const selectedEvt = eventTasks?.find((e) => e.id === eventId);
+      if (selectedEvt) {
+        const isEvtRecurring = selectedEvt.eventType === 'recurring' || (!selectedEvt.eventType && selectedEvt.recurrence && selectedEvt.recurrence !== 'none');
+        if (newIsRecurring !== isEvtRecurring) {
+          setEventId('');
+        }
+      }
+    }
+  };
+
   const applyPreset = (preset) => {
-    setRecurrence('custom');
+    handleRecurrenceChange('custom');
     const today = dueDate || recurrenceStartDate || format(new Date(), 'yyyy-MM-dd');
     setRecurrenceStartDate(today);
 
@@ -383,7 +403,19 @@ export const TaskFormModal = ({
             topic: helperTopic.trim() || '' // Never pass undefined to Firestore
           }
         : null,
-      eventId: eventId ? eventId.trim() : null,
+      eventId: (() => {
+        let finalEventId = eventId ? eventId.trim() : null;
+        if (finalEventId) {
+          const targetEvt = eventTasks?.find((e) => e.id === finalEventId);
+          if (targetEvt) {
+            const isEvtRecurring = targetEvt.eventType === 'recurring' || (!targetEvt.eventType && targetEvt.recurrence && targetEvt.recurrence !== 'none');
+            if (Boolean(recurrence && recurrence !== 'none') !== isEvtRecurring) {
+              finalEventId = null;
+            }
+          }
+        }
+        return finalEventId;
+      })(),
       tags
     };
 
@@ -647,7 +679,7 @@ export const TaskFormModal = ({
               <div className="form-group" style={{ marginTop: '12px' }}>
                 <label className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <Calendar size={14} color="var(--primary)" />
-                  <span>Belongs to Event (Optional)</span>
+                  <span>Belongs to {isTaskRecurring ? 'Recurring' : 'Normal'} Event (Optional)</span>
                 </label>
                 <select
                   className="select"
@@ -655,12 +687,19 @@ export const TaskFormModal = ({
                   onChange={(e) => setEventId(e.target.value)}
                 >
                   <option value="">None (Standalone Task)</option>
-                  {eventTasks.map((evt) => (
+                  {compatibleEvents.map((evt) => (
                     <option key={evt.id} value={evt.id}>
                       🗓️ {evt.title} ({evt.eventType === 'recurring' ? 'Recurring Event' : 'Event'})
                     </option>
                   ))}
                 </select>
+                {compatibleEvents.length === 0 && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                    {isTaskRecurring 
+                      ? 'No recurring events available. Recurring tasks can only belong to recurring events.' 
+                      : 'No normal events available. Normal tasks can only belong to normal events.'}
+                  </p>
+                )}
               </div>
             )}
 
@@ -675,7 +714,7 @@ export const TaskFormModal = ({
                 <select
                   className="select"
                   value={recurrence}
-                  onChange={(e) => setRecurrence(e.target.value)}
+                  onChange={(e) => handleRecurrenceChange(e.target.value)}
                 >
                   <option value="none">Does not repeat</option>
                   <option value="daily">🔁 Daily (Every day)</option>

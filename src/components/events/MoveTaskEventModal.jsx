@@ -20,10 +20,21 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
   const currentEvent = task.eventId ? eventTasks?.find((e) => e.id === task.eventId) : null;
   const isTaskRecurring = Boolean(task.recurrence && task.recurrence !== 'none');
 
-  // Find compatible events: matching recurrence or all events
-  const otherEvents = (eventTasks || []).filter((e) => e.id !== task.eventId);
+  // Normal tasks can ONLY move to normal events; recurring tasks can ONLY move to recurring events
+  const otherEvents = (eventTasks || []).filter((e) => {
+    if (e.id === task.eventId) return false;
+    const isEvtRecurring = e.eventType === 'recurring' || (!e.eventType && e.recurrence && e.recurrence !== 'none');
+    return isTaskRecurring ? isEvtRecurring : !isEvtRecurring;
+  });
 
   const handleMoveTo = (targetEventId) => {
+    if (targetEventId) {
+      const targetEvt = eventTasks?.find((e) => e.id === targetEventId);
+      if (targetEvt) {
+        const isEvtRecurring = targetEvt.eventType === 'recurring' || (!targetEvt.eventType && targetEvt.recurrence && targetEvt.recurrence !== 'none');
+        if (isTaskRecurring !== isEvtRecurring) return;
+      }
+    }
     updateTask(task.id, { eventId: targetEventId || null });
     onClose();
   };
@@ -97,11 +108,13 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
               {task.eventId ? 'Or Move to Another Event:' : 'Choose Destination Event:'}
             </label>
 
-            {(!eventTasks || eventTasks.length === 0) ? (
+            {(!eventTasks || eventTasks.length === 0 || otherEvents.length === 0) ? (
               <div style={{ padding: '20px 16px', textAlign: 'center', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
                 <AlertCircle size={22} style={{ margin: '0 auto 6px', opacity: 0.6 }} />
                 <p style={{ fontSize: '0.8125rem', margin: 0 }}>
-                  No events created yet.
+                  {isTaskRecurring 
+                    ? 'No recurring events available. Recurring tasks can only be moved into recurring events.' 
+                    : 'No normal events available. Normal tasks can only be moved into normal events.'}
                 </p>
                 {onOpenNewEvent && (
                   <button
@@ -110,18 +123,14 @@ export const MoveTaskEventModal = ({ isOpen, onClose, task, onOpenNewEvent }) =>
                     style={{ marginTop: '10px', fontSize: '0.75rem', padding: '6px 14px' }}
                     onClick={() => {
                       onClose();
-                      onOpenNewEvent();
+                      onOpenNewEvent(isTaskRecurring ? 'recurring' : 'normal');
                     }}
                   >
                     <Plus size={14} />
-                    <span>Create New Event</span>
+                    <span>Create {isTaskRecurring ? 'Recurring' : 'Normal'} Event</span>
                   </button>
                 )}
               </div>
-            ) : otherEvents.length === 0 ? (
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
-                No other events available.
-              </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
                 {otherEvents.map((evt) => (

@@ -47,6 +47,7 @@ export const TaskTableView = ({
     toggleTaskStep,
     toggleStopRecurrence,
     getRecurrenceLabel,
+    isTaskScheduledOnDate,
     deleteTask, 
     deleteEvent,
     updateTask,
@@ -232,7 +233,15 @@ export const TaskTableView = ({
               const isExpanded = expandedEventIds.has(task.id);
               const accentColor = task.color || '#6366f1';
               const isRecurringEvent = task.eventType === 'recurring' || Boolean(task.recurrence && task.recurrence !== 'none');
-              const childTasks = tasks.filter((t) => t.eventId === task.id);
+              const allChildTasks = tasks.filter((t) => t.eventId === task.id);
+              const childTasks = isRecurringEvent
+                ? allChildTasks.filter((t) => {
+                    if (t.recurrence && t.recurrence !== 'none') {
+                      return isTaskScheduledOnDate ? isTaskScheduledOnDate(t, recurringDate) : true;
+                    }
+                    return true;
+                  })
+                : allChildTasks;
               const totalCount = childTasks.length;
               const completedCount = childTasks.filter((t) => {
                 if (isRecurringEvent || (t.recurrence && t.recurrence !== 'none')) {
@@ -442,7 +451,7 @@ export const TaskTableView = ({
                     childTasks.length === 0 ? (
                       <tr className="event-table-empty-row" style={{ background: 'var(--bg-app)' }}>
                         <td colSpan={10} style={{ padding: '14px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                          <span>No tasks in this event yet. </span>
+                          <span>{isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'} </span>
                           <button
                             type="button"
                             className="btn-link"
@@ -505,11 +514,10 @@ export const TaskTableView = ({
                               {/* 2. Task Title, Description & Step Menu */}
                               <td>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>↳</span>
                                   <span className="table-task-title">{sub.title}</span>
                                 </div>
                                 {sub.description && (
-                                  <div className="table-task-desc" style={{ paddingLeft: '14px' }} title={sub.description}>
+                                  <div className="table-task-desc" title={sub.description}>
                                     {sub.description}
                                   </div>
                                 )}
@@ -638,9 +646,23 @@ export const TaskTableView = ({
                                 )}
                               </td>
 
-                              {/* 6. Recurrence (Under Recurrence Column - no recurring tag per instructions) */}
+                              {/* 6. Recurrence (Under Recurrence Column) */}
                               <td>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                {sub.recurrence && sub.recurrence !== 'none' ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                                    <span className="badge badge-recurrence">
+                                      <Repeat size={11} />
+                                      <span>{getRecurrenceLabel(sub)}</span>
+                                    </span>
+                                    {sub.isRecurringStopped && (
+                                      <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
+                                        ⏸ Stopped
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                )}
                               </td>
 
                               {/* 7. Amount (Under Amount Column) */}
