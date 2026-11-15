@@ -1000,7 +1000,8 @@ export const TaskProvider = ({ children }) => {
           const matchSubtask = task.isEvent && tasks.some((sub) => sub.eventId === task.id && (
             sub.title?.toLowerCase().includes(q) ||
             sub.description?.toLowerCase().includes(q) ||
-            sub.assignedTo?.name?.toLowerCase().includes(q)
+            sub.assignedTo?.name?.toLowerCase().includes(q) ||
+            sub.needHelpFrom?.name?.toLowerCase().includes(q)
           ));
           if (!matchTitle && !matchDesc && !matchAssignee && !matchHelper && !matchTags && !matchSubtask) {
             return false;
@@ -1054,8 +1055,8 @@ export const TaskProvider = ({ children }) => {
           return false;
         }
 
-        // Assignee Filter
-        if (filterAssignee !== 'all' && task.assignedTo?.name !== filterAssignee) {
+        // Assignee / Team Filter
+        if (filterAssignee !== 'all' && task.assignedTo?.name !== filterAssignee && task.needHelpFrom?.name !== filterAssignee) {
           return false;
         }
 
@@ -1088,6 +1089,7 @@ export const TaskProvider = ({ children }) => {
     assignees.forEach(a => set.add(a.name));
     tasks.forEach((t) => {
       if (t.assignedTo?.name) set.add(t.assignedTo.name);
+      if (t.needHelpFrom?.name) set.add(t.needHelpFrom.name);
     });
     return Array.from(set);
   }, [tasks, assignees]);

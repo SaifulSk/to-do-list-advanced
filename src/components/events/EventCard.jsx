@@ -21,7 +21,7 @@ export const EventCard = ({
   onOpenNewTaskForEvent, 
   onEditTask,
   dateStr: propDateStr = null,
-  initialExpanded = false
+  initialExpanded = true
 }) => {
   const { 
     tasks, 
@@ -140,10 +140,6 @@ export const EventCard = ({
                 {event.title}
               </h3>
 
-              <span className="badge" style={{ background: `${accentColor}18`, color: accentColor, borderColor: `${accentColor}33`, fontSize: '0.6875rem' }}>
-                Event
-              </span>
-
               {isAllDone && (
                 <span className="badge badge-completed" style={{ fontSize: '0.6875rem' }}>
                   <CheckCircle2 size={11} />
@@ -164,7 +160,7 @@ export const EventCard = ({
               </p>
             )}
 
-            {/* Metadata Chips: Dates, Budget, Assignee */}
+            {/* Metadata Chips: Dates, Budget */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
               {dateInfoText && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -177,13 +173,6 @@ export const EventCard = ({
                 <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
                   <Banknote size={10} />
                   <span>Budget: {event.currency || '₹'}{Number(event.amount).toLocaleString()}</span>
-                </span>
-              )}
-
-              {event.assignedTo && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Users size={12} />
-                  <span>Lead: <strong>{event.assignedTo.name}</strong></span>
                 </span>
               )}
             </div>

@@ -66,10 +66,10 @@ export const TaskTableView = ({
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
   const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
   const [moveTargetTask, setMoveTargetTask] = useState(null);
-  const [expandedEventIds, setExpandedEventIds] = useState(() => new Set());
+  const [collapsedEventIds, setCollapsedEventIds] = useState(() => new Set());
 
   const toggleEventExpand = (eventId) => {
-    setExpandedEventIds((prev) => {
+    setCollapsedEventIds((prev) => {
       const next = new Set(prev);
       if (next.has(eventId)) next.delete(eventId);
       else next.add(eventId);
@@ -209,6 +209,8 @@ export const TaskTableView = ({
     );
   }
 
+  const colCount = (taskTypeTab === 'normal' || taskTypeTab === 'recurring') ? 9 : 10;
+
   return (
     <div className="task-table-container">
       <table className="task-table">
@@ -218,8 +220,8 @@ export const TaskTableView = ({
             <th style={{ minWidth: '220px' }}>Task</th>
             <th style={{ width: '110px' }}>Status</th>
             <th style={{ width: '110px' }}>Priority</th>
-            <th style={{ width: '140px' }}>Due Date</th>
-            <th style={{ width: '110px' }}>Recurrence</th>
+            {taskTypeTab !== 'recurring' && <th style={{ width: '140px' }}>Due Date</th>}
+            {taskTypeTab !== 'normal' && <th style={{ width: '110px' }}>Recurrence</th>}
             <th style={{ width: '110px' }}>Amount</th>
             <th style={{ width: '160px' }}>Assignee</th>
             <th style={{ width: '120px' }}>Tags</th>
@@ -230,7 +232,7 @@ export const TaskTableView = ({
           {filteredTasks.map((task) => {
             // Case 1: Event Task Row in Table View
             if (task.isEvent) {
-              const isExpanded = expandedEventIds.has(task.id);
+              const isExpanded = !collapsedEventIds.has(task.id);
               const accentColor = task.color || '#6366f1';
               const isRecurringEvent = task.eventType === 'recurring' || Boolean(task.recurrence && task.recurrence !== 'none');
               const allChildTasks = tasks.filter((t) => t.eventId === task.id);
@@ -251,18 +253,6 @@ export const TaskTableView = ({
               }).length;
               const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
               const isAllDone = totalCount > 0 && completedCount === totalCount;
-
-              const dateText = (() => {
-                if (isRecurringEvent && task.recurrence && task.recurrence !== 'none') {
-                  return getRecurrenceLabel(task);
-                }
-                if (task.startDate && task.endDate) {
-                  return `${format(parseISO(task.startDate), 'MMM d')} – ${format(parseISO(task.endDate), 'MMM d')}`;
-                }
-                if (task.startDate) return `Starts: ${format(parseISO(task.startDate), 'MMM d')}`;
-                if (task.endDate || task.dueDate) return `Target: ${format(parseISO(task.endDate || task.dueDate), 'MMM d')}`;
-                return '—';
-              })();
 
               return (
                 <React.Fragment key={task.id}>
@@ -312,12 +302,6 @@ export const TaskTableView = ({
                         <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.875rem' }}>
                           {task.title}
                         </span>
-                        <span className="badge" style={{ background: `${accentColor}15`, color: accentColor, borderColor: `${accentColor}33`, fontSize: '0.625rem', padding: '1px 5px' }}>
-                          Event
-                        </span>
-                        <span className="badge" style={{ fontSize: '0.625rem', padding: '1px 5px' }}>
-                          {totalCount} {totalCount === 1 ? 'task' : 'tasks'}
-                        </span>
                       </div>
                       {task.description && (
                         <div className="table-task-desc" style={{ paddingLeft: '32px' }} title={task.description}>
@@ -345,84 +329,27 @@ export const TaskTableView = ({
                       </div>
                     </td>
 
-                    {/* Priority */}
-                    <td>
-                      <span className={`badge badge-${task.priority}`} style={{ textTransform: 'capitalize', fontSize: '0.6875rem' }}>
-                        {task.priority}
-                      </span>
-                    </td>
+                    {/* Priority - Blank for event row */}
+                    <td></td>
 
-                    {/* Date */}
-                    <td>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {dateText}
-                      </span>
-                    </td>
+                    {/* Due Date - Blank for event row */}
+                    {taskTypeTab !== 'recurring' && <td></td>}
 
-                    {/* Recurrence (hidden for events per instructions) */}
-                    <td>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                    </td>
+                    {/* Recurrence - Blank for event row */}
+                    {taskTypeTab !== 'normal' && <td></td>}
 
-                    {/* Amount */}
-                    <td>
-                      {task.amount !== undefined && task.amount !== null && task.amount !== '' ? (
-                        <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
-                          <Banknote size={10} />
-                          <span>{task.currency || '₹'}{Number(task.amount).toLocaleString()}</span>
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                      )}
-                    </td>
+                    {/* Amount - Blank for event row */}
+                    <td></td>
 
-                    {/* Assignee / Lead */}
-                    <td>
-                      {task.assignedTo && task.assignedTo.name ? (
-                        <div className="assignee-chip" style={{ width: 'fit-content' }}>
-                          <div className="avatar" style={{ width: '16px', height: '16px', fontSize: '0.5625rem' }}>
-                            {task.assignedTo.avatar || task.assignedTo.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <span>{task.assignedTo.name}</span>
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                      )}
-                    </td>
+                    {/* Assignee - Blank for event row */}
+                    <td></td>
 
-                    {/* Tags */}
-                    <td>
-                      {task.tags && task.tags.length > 0 ? (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {task.tags.map((tag, idx) => (
-                            <span 
-                              key={idx} 
-                              className="badge" 
-                              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', fontSize: '0.6875rem' }}
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                      )}
-                    </td>
+                    {/* Tags - Blank for event row */}
+                    <td></td>
 
                     {/* Actions */}
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '3px 8px', fontSize: '0.6875rem', gap: '3px' }}
-                          onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
-                          title="Add Task to this Event"
-                        >
-                          <Plus size={11} />
-                          <span>Task</span>
-                        </button>
-
                         <button 
                           type="button"
                           className="btn-icon" 
@@ -446,20 +373,12 @@ export const TaskTableView = ({
                     </td>
                   </tr>
 
-                  {/* Expanded Subtasks: Rendered as table rows matching the 10 columns */}
+                  {/* Expanded Subtasks: Rendered as table rows matching the dynamic columns */}
                   {isExpanded && (
                     childTasks.length === 0 ? (
                       <tr className="event-table-empty-row" style={{ background: 'var(--bg-app)' }}>
-                        <td colSpan={10} style={{ padding: '14px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                          <span>{isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'} </span>
-                          <button
-                            type="button"
-                            className="btn-link"
-                            style={{ color: 'var(--primary)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
-                          >
-                            + Add Task
-                          </button>
+                        <td colSpan={colCount} style={{ padding: '14px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <span>{isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'}</span>
                         </td>
                       </tr>
                     ) : (
@@ -635,35 +554,39 @@ export const TaskTableView = ({
                                 </span>
                               </td>
 
-                              {/* 5. Due Date (Under Due Date Column) */}
-                              <td>
-                                {subDueInfo ? (
-                                  <span className={`date-badge ${subDueInfo.class}`}>
-                                    {subDueInfo.text}
-                                  </span>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                                )}
-                              </td>
-
-                              {/* 6. Recurrence (Under Recurrence Column) */}
-                              <td>
-                                {sub.recurrence && sub.recurrence !== 'none' ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
-                                    <span className="badge badge-recurrence">
-                                      <Repeat size={11} />
-                                      <span>{getRecurrenceLabel(sub)}</span>
+                              {/* 5. Due Date (hidden in Recurring tab) */}
+                              {taskTypeTab !== 'recurring' && (
+                                <td>
+                                  {subDueInfo ? (
+                                    <span className={`date-badge ${subDueInfo.class}`}>
+                                      {subDueInfo.text}
                                     </span>
-                                    {sub.isRecurringStopped && (
-                                      <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
-                                        ⏸ Stopped
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                  )}
+                                </td>
+                              )}
+
+                              {/* 6. Recurrence (hidden in Normal tab) */}
+                              {taskTypeTab !== 'normal' && (
+                                <td>
+                                  {sub.recurrence && sub.recurrence !== 'none' ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                                      <span className="badge badge-recurrence">
+                                        <Repeat size={11} />
+                                        <span>{getRecurrenceLabel(sub)}</span>
                                       </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                                )}
-                              </td>
+                                      {sub.isRecurringStopped && (
+                                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
+                                          ⏸ Stopped
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                                  )}
+                                </td>
+                              )}
 
                               {/* 7. Amount (Under Amount Column) */}
                               <td>
@@ -677,17 +600,15 @@ export const TaskTableView = ({
                                 )}
                               </td>
 
-                              {/* 8. Assignee (Under Assignee Column) */}
+                              {/* 8. Assignee / Collaborator (Need Help) */}
                               <td>
-                                {sub.assignedTo && sub.assignedTo.name ? (
-                                  <div className="assignee-chip" style={{ width: 'fit-content' }}>
-                                    <div className="avatar" style={{ width: '16px', height: '16px', fontSize: '0.5625rem' }}>
-                                      {sub.assignedTo.avatar || sub.assignedTo.name.slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <span>{sub.assignedTo.name}</span>
+                                {sub.needHelpFrom && sub.needHelpFrom.name ? (
+                                  <div className="helper-chip" style={{ width: 'fit-content', padding: '2px 6px', fontSize: '0.6875rem' }}>
+                                    <Users size={10} />
+                                    <span>{sub.needHelpFrom.name}</span>
                                   </div>
                                 ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Unassigned</span>
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                                 )}
                               </td>
 
@@ -747,21 +668,6 @@ export const TaskTableView = ({
                             </tr>
                           );
                         })}
-
-                        {/* Inline Add Task Row */}
-                        <tr className="event-table-add-row" style={{ background: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)' }}>
-                          <td colSpan={10} style={{ padding: '6px 20px' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
-                              onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(task.id, isRecurringEvent)}
-                            >
-                              <Plus size={12} />
-                              <span>Add Task to this Event</span>
-                            </button>
-                          </td>
-                        </tr>
                       </>
                     )
                   )}
@@ -958,35 +864,39 @@ export const TaskTableView = ({
                   </span>
                 </td>
 
-                {/* Due Date */}
-                <td>
-                  {dueInfo ? (
-                    <span className={`date-badge ${dueInfo.class}`}>
-                      {dueInfo.text}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                  )}
-                </td>
-
-                {/* Recurrence */}
-                <td>
-                  {task.recurrence && task.recurrence !== 'none' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
-                      <span className="badge badge-recurrence">
-                        <Repeat size={11} />
-                        <span>{getRecurrenceLabel(task)}</span>
+                {/* Due Date (hidden in Recurring tab) */}
+                {taskTypeTab !== 'recurring' && (
+                  <td>
+                    {dueInfo ? (
+                      <span className={`date-badge ${dueInfo.class}`}>
+                        {dueInfo.text}
                       </span>
-                      {task.isRecurringStopped && (
-                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
-                          ⏸ Stopped
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                    )}
+                  </td>
+                )}
+
+                {/* Recurrence (hidden in Normal tab) */}
+                {taskTypeTab !== 'normal' && (
+                  <td>
+                    {task.recurrence && task.recurrence !== 'none' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span className="badge badge-recurrence">
+                          <Repeat size={11} />
+                          <span>{getRecurrenceLabel(task)}</span>
                         </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                  )}
-                </td>
+                        {task.isRecurringStopped && (
+                          <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--priority-urgent)', borderColor: 'rgba(239, 68, 68, 0.25)', fontSize: '0.625rem', padding: '1px 5px' }}>
+                            ⏸ Stopped
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                    )}
+                  </td>
+                )}
 
                 {/* Amount */}
                 <td>
@@ -1000,27 +910,16 @@ export const TaskTableView = ({
                   )}
                 </td>
 
-                {/* Assignee / Helper */}
+                {/* Assignee / Collaborator (Need Help) */}
                 <td>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {task.assignedTo && task.assignedTo.name ? (
-                      <div className="assignee-chip" style={{ width: 'fit-content' }}>
-                        <div className="avatar" style={{ width: '16px', height: '16px', fontSize: '0.5625rem' }}>
-                          {task.assignedTo.avatar || task.assignedTo.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span>{task.assignedTo.name}</span>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Unassigned</span>
-                    )}
-
-                    {task.needHelpFrom && task.needHelpFrom.name && (
-                      <div className="helper-chip" style={{ width: 'fit-content', padding: '2px 6px', fontSize: '0.6875rem' }}>
-                        <Users size={10} />
-                        <span>{task.needHelpFrom.name}</span>
-                      </div>
-                    )}
-                  </div>
+                  {task.needHelpFrom && task.needHelpFrom.name ? (
+                    <div className="helper-chip" style={{ width: 'fit-content', padding: '2px 6px', fontSize: '0.6875rem' }}>
+                      <Users size={10} />
+                      <span>{task.needHelpFrom.name}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                  )}
                 </td>
 
                 {/* Tags */}

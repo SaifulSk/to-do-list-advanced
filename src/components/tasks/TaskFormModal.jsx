@@ -62,17 +62,10 @@ export const TaskFormModal = ({
   const [steps, setSteps] = useState([]);
   const [newStepText, setNewStepText] = useState('');
 
-  // Assigned to field
-  const [assignedName, setAssignedName] = useState('');
-  const [isCustomAssignee, setIsCustomAssignee] = useState(false);
-
   // Need help from fields
   const [hasHelper, setHasHelper] = useState(false);
   const [helperName, setHelperName] = useState('');
   const [helperTopic, setHelperTopic] = useState('');
-
-  // Tags
-  const [tagsInput, setTagsInput] = useState('');
 
   // Track previous open state and task id to prevent wiping form data when assignees update
   const prevIsOpenRef = React.useRef(false);
@@ -123,11 +116,6 @@ export const TaskFormModal = ({
         setSteps(Array.isArray(initialTask.steps) ? initialTask.steps : []);
         setNewStepText('');
 
-        const currentAssigned = initialTask.assignedTo?.name || '';
-        setAssignedName(currentAssigned);
-        const inMaster = assignees.some(a => a.name.toLowerCase() === currentAssigned.toLowerCase());
-        setIsCustomAssignee(Boolean(currentAssigned && !inMaster));
-
         if (initialTask.needHelpFrom && initialTask.needHelpFrom.name) {
           setHasHelper(true);
           setHelperName(initialTask.needHelpFrom.name || '');
@@ -138,7 +126,6 @@ export const TaskFormModal = ({
           setHelperTopic('');
         }
 
-        setTagsInput(initialTask.tags ? initialTask.tags.join(', ') : '');
         setEventId(initialTask.eventId || defaultEventId || '');
       } else {
         // New task default state
@@ -165,12 +152,9 @@ export const TaskFormModal = ({
         setHasSteps(false);
         setSteps([]);
         setNewStepText('');
-        setAssignedName('');
-        setIsCustomAssignee(false);
         setHasHelper(false);
         setHelperName('');
         setHelperTopic('');
-        setTagsInput('');
       }
     }
 
@@ -391,12 +375,7 @@ export const TaskFormModal = ({
       completedStepsByDate: initialTask?.completedStepsByDate || {},
       amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
       currency: amount !== '' ? '₹' : null,
-      assignedTo: assignedName.trim()
-        ? {
-            name: assignedName.trim(),
-            avatar: assignedName.trim().slice(0, 2).toUpperCase()
-          }
-        : null,
+      assignedTo: null,
       needHelpFrom: hasHelper && helperName.trim()
         ? {
             name: helperName.trim(),
@@ -416,7 +395,7 @@ export const TaskFormModal = ({
         }
         return finalEventId;
       })(),
-      tags
+      tags: initialTask?.tags || []
     };
 
     // 1. Immediately close the modal so UI is snappy and never gets stuck
@@ -427,17 +406,6 @@ export const TaskFormModal = ({
       updateTask(initialTask.id, taskPayload);
     } else {
       addTask(taskPayload);
-    }
-  };
-
-  const handleAssigneeSelectChange = (e) => {
-    const val = e.target.value;
-    if (val === '__custom__') {
-      setIsCustomAssignee(true);
-      setAssignedName('');
-    } else {
-      setIsCustomAssignee(false);
-      setAssignedName(val);
     }
   };
 
@@ -1203,67 +1171,7 @@ export const TaskFormModal = ({
               </div>
             )}
 
-            {/* Section: Assigned To with Master Selector */}
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={15} color="var(--assignee-accent)" />
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    Assigned To
-                  </span>
-                </div>
-                {onOpenAssigneeMaster && (
-                  <button
-                    type="button"
-                    onClick={onOpenAssigneeMaster}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--primary)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Settings size={12} />
-                    <span>Manage Master</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Dropdown with Assignee Master + Custom option */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <select
-                  className="select"
-                  value={isCustomAssignee ? '__custom__' : assignedName}
-                  onChange={handleAssigneeSelectChange}
-                >
-                  <option value="">-- Unassigned --</option>
-                  {assignees.map((a) => (
-                    <option key={a.id} value={a.name}>
-                      {a.name} {a.role ? `(${a.role})` : ''}
-                    </option>
-                  ))}
-                  <option value="__custom__">✏️ Enter custom name...</option>
-                </select>
-
-                {isCustomAssignee && (
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Enter assignee name..."
-                    value={assignedName}
-                    onChange={(e) => setAssignedName(e.target.value)}
-                    autoFocus
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Section: Need Help From (Collaborator request) */}
+            {/* Section: Need Help From (Team Collaborator request) */}
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1272,52 +1180,69 @@ export const TaskFormModal = ({
                     Need Help From (Collaborator)
                   </span>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                  <input
-                    type="checkbox"
-                    checked={hasHelper}
-                    onChange={(e) => setHasHelper(e.target.checked)}
-                  />
-                  <span>Request Help</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {onOpenAssigneeMaster && (
+                    <button
+                      type="button"
+                      onClick={onOpenAssigneeMaster}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: 0
+                      }}
+                      title="Manage Team Directory"
+                    >
+                      <Settings size={12} />
+                      <span>Manage Team</span>
+                    </button>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <input
+                      type="checkbox"
+                      checked={hasHelper}
+                      onChange={(e) => setHasHelper(e.target.checked)}
+                    />
+                    <span>Request Help</span>
+                  </label>
+                </div>
               </div>
 
               {hasHelper && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--help-accent-bg)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--help-border)' }}>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Helper Name (e.g. Marcus Bell)"
+                  <select
+                    className="select"
                     value={helperName}
                     onChange={(e) => setHelperName(e.target.value)}
                     required={hasHelper}
-                  />
+                  >
+                    <option value="">-- Select Team Member --</option>
+                    {assignees.map((member) => (
+                      <option key={member.id} value={member.name}>
+                        {member.name} {member.role ? `(${member.role})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {assignees.length === 0 && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      No team members in directory yet. Click "Manage Team" above to add team members.
+                    </span>
+                  )}
                   <input
                     type="text"
                     className="input"
-                    placeholder="Topic or Reason (e.g. Code Review, Testing)"
+                    placeholder="Topic or Reason (Optional, e.g. Code Review, Testing)"
                     value={helperTopic}
                     onChange={(e) => setHelperTopic(e.target.value)}
                   />
                 </div>
               )}
-            </div>
-
-            {/* Tags */}
-            <div className="form-group">
-              <div className="form-label-row">
-                <label className="form-label">
-                  <span>Tags</span>
-                </label>
-                <span className="form-hint">Comma separated</span>
-              </div>
-              <input
-                type="text"
-                className="input"
-                placeholder="Design, Frontend, Urgent"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-              />
             </div>
           </div>
 

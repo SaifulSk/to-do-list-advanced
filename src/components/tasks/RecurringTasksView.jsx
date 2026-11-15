@@ -442,11 +442,11 @@ export const RecurringTasksView = ({ onEditTask, onOpenNewTask }) => {
                       </span>
                     )}
 
-                    {/* Assignee */}
-                    {task.assignedTo && (
-                      <span className="badge badge-assignee">
+                    {/* Collaborator (Need Help) */}
+                    {task.needHelpFrom && task.needHelpFrom.name && (
+                      <span className="helper-chip" style={{ fontSize: '0.6875rem', padding: '2px 6px' }}>
                         <Users size={11} />
-                        <span>{task.assignedTo.name}</span>
+                        <span>{task.needHelpFrom.name}</span>
                       </span>
                     )}
                   </div>

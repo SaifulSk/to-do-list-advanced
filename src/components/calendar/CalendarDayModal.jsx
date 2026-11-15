@@ -339,9 +339,6 @@ export const CalendarDayModal = ({
             {item.type === 'created' && currentTask.dueDate && (
               <span style={{ fontSize: '0.75rem' }}>Target Due: {currentTask.dueDate}</span>
             )}
-            {currentTask.assignedTo && (
-              <span style={{ fontSize: '0.75rem' }}>Assignee: <strong>{currentTask.assignedTo.name}</strong></span>
-            )}
             {currentTask.needHelpFrom && (
               <span style={{ color: 'var(--help-accent)', fontSize: '0.75rem' }}>
                 🤝 Needs help from {currentTask.needHelpFrom.name}

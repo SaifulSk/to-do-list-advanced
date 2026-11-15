@@ -49,8 +49,8 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
     nameInputRef.current?.focus();
   };
 
-  const getTaskCountForAssignee = (assigneeName) => {
-    return tasks.filter(t => t.assignedTo?.name?.toLowerCase() === assigneeName.toLowerCase() && t.status !== 'completed').length;
+  const getTaskCountForAssignee = (memberName) => {
+    return tasks.filter(t => t.needHelpFrom?.name?.toLowerCase() === memberName.toLowerCase() && t.status !== 'completed').length;
   };
 
   return (
@@ -59,7 +59,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
         <div className="modal-header">
           <div className="modal-title">
             <Users size={18} color="var(--primary)" />
-            <span>Assignee Master Directory</span>
+            <span>Team Directory</span>
           </div>
           <button className="btn-icon" onClick={onClose} type="button">
             <X size={16} />
@@ -67,10 +67,10 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="modal-body" style={{ gap: '20px' }}>
-          {/* Add New Assignee Form */}
+          {/* Add New Member Form */}
           <form onSubmit={handleAdd} style={{ background: 'var(--bg-surface-elevated)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Plus size={14} color="var(--primary)" /> Add Team Member to Master
+              <Plus size={14} color="var(--primary)" /> Add Team Member
             </span>
 
             {error && (
@@ -89,7 +89,7 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
               <input
                 type="text"
                 className="input"
-                placeholder="Role / Tag (e.g. Designer)"
+                placeholder="Role / Skill (e.g. Designer, QA)"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               />
@@ -97,24 +97,24 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
 
             <button type="submit" className="btn btn-primary" style={{ padding: '8px 14px', alignSelf: 'flex-end', fontSize: '0.8125rem' }}>
               <Plus size={14} />
-              <span>Add to Directory</span>
+              <span>Add to Team</span>
             </button>
           </form>
 
-          {/* Master Directory List */}
+          {/* Team Directory List */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                Registered Assignees ({assignees.length})
+                Team Members ({assignees.length})
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Available in task assignments
+                Available for Need Help requests
               </span>
             </div>
 
             {assignees.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                No team members in master directory yet. Use the form above to add your team members.
+                No team members in directory yet. Use the form above to add members.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
@@ -151,13 +151,13 @@ export const AssigneeMasterModal = ({ isOpen, onClose }) => {
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span className="badge badge-date" style={{ fontSize: '0.7rem' }}>
-                          {activeCount} active task{activeCount === 1 ? '' : 's'}
+                          {activeCount} active request{activeCount === 1 ? '' : 's'}
                         </span>
                         <button
                           className="btn-icon"
                           style={{ width: '28px', height: '28px', color: 'var(--priority-urgent)' }}
                           onClick={() => setMemberToDelete(assignee)}
-                          title={`Delete ${assignee.name} from master`}
+                          title={`Delete ${assignee.name} from team`}
                         >
                           <Trash2 size={13} />
                         </button>

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { 
   X, 
   Calendar, 
-  Users, 
   Banknote, 
   Palette, 
   Check 
@@ -23,17 +22,14 @@ export const EventFormModal = ({
   isOpen, 
   onClose, 
   initialEvent, 
-  defaultEventType = 'normal',
-  onOpenAssigneeMaster 
+  defaultEventType = 'normal'
 }) => {
-  const { addTask, updateTask, assignees } = useTasks();
+  const { addTask, updateTask } = useTasks();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedColor, setSelectedColor] = useState('#6366f1');
-  const [assignedName, setAssignedName] = useState('');
-  const [isCustomAssignee, setIsCustomAssignee] = useState(false);
 
   const prevIsOpenRef = useRef(false);
   const prevEventIdRef = useRef(null);
@@ -51,21 +47,17 @@ export const EventFormModal = ({
         setDescription(initialEvent.description || '');
         setAmount(initialEvent.amount !== undefined && initialEvent.amount !== null ? String(initialEvent.amount) : '');
         setSelectedColor(initialEvent.color || (isRecurring ? '#8b5cf6' : '#6366f1'));
-        setAssignedName(initialEvent.assignedTo?.name || '');
-        setIsCustomAssignee(Boolean(initialEvent.assignedTo?.name && !assignees.some(a => a.name === initialEvent.assignedTo.name)));
       } else {
         setTitle('');
         setDescription('');
         setAmount('');
         setSelectedColor(isRecurring ? '#8b5cf6' : '#6366f1');
-        setAssignedName('');
-        setIsCustomAssignee(false);
       }
     }
 
     prevIsOpenRef.current = isOpen;
     prevEventIdRef.current = initialEvent?.id || null;
-  }, [isOpen, initialEvent, isRecurring, assignees]);
+  }, [isOpen, initialEvent, isRecurring]);
 
   if (!isOpen) return null;
 
@@ -87,12 +79,7 @@ export const EventFormModal = ({
       color: selectedColor || (isRecurring ? '#8b5cf6' : '#6366f1'),
       amount: amount !== '' && !isNaN(Number(amount)) ? Number(amount) : null,
       currency: amount !== '' ? '₹' : null,
-      assignedTo: assignedName.trim()
-        ? {
-            name: assignedName.trim(),
-            avatar: assignedName.trim().slice(0, 2).toUpperCase()
-          }
-        : null,
+      assignedTo: null,
       tags: initialEvent?.tags || []
     };
 
@@ -193,71 +180,7 @@ export const EventFormModal = ({
               </div>
             </div>
 
-            {/* 4. Event Lead / Organizer (Optional) */}
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Users size={13} color="var(--primary)" />
-                  <span>Event Lead / Organizer (Optional)</span>
-                </label>
-                {onOpenAssigneeMaster && (
-                  <button 
-                    type="button" 
-                    className="btn-link"
-                    style={{ fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
-                    onClick={onOpenAssigneeMaster}
-                  >
-                    Manage Team
-                  </button>
-                )}
-              </div>
-
-              {!isCustomAssignee ? (
-                <select 
-                  className="select"
-                  value={assignedName}
-                  onChange={(e) => {
-                    if (e.target.value === '__custom__') {
-                      setIsCustomAssignee(true);
-                      setAssignedName('');
-                    } else {
-                      setAssignedName(e.target.value);
-                    }
-                  }}
-                >
-                  <option value="">Unassigned (None)</option>
-                  {assignees.map((a) => (
-                    <option key={a.id} value={a.name}>
-                      {a.name} {a.role ? `(${a.role})` : ''}
-                    </option>
-                  ))}
-                  <option value="__custom__">✏️ Enter custom name...</option>
-                </select>
-              ) : (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <input 
-                    type="text" 
-                    className="input" 
-                    placeholder="Enter organizer's name..."
-                    value={assignedName}
-                    onChange={(e) => setAssignedName(e.target.value)}
-                    autoFocus
-                  />
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setIsCustomAssignee(false);
-                      setAssignedName('');
-                    }}
-                  >
-                    Select
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Color Theme */}
+            {/* 4. Color Theme */}
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                 <Palette size={13} color="var(--primary)" />

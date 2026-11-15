@@ -417,16 +417,6 @@ export const TaskCard = ({ task, onEdit, isInsideEvent = false, dateStr = null }
             </span>
           )}
 
-          {/* Assigned To Chip */}
-          {task.assignedTo && task.assignedTo.name && (
-            <div className="assignee-chip" title={`Assigned to ${task.assignedTo.name} (${task.assignedTo.email || ''})`}>
-              <div className="avatar" style={{ width: '18px', height: '18px', fontSize: '0.625rem' }}>
-                {task.assignedTo.avatar || task.assignedTo.name.slice(0, 2).toUpperCase()}
-              </div>
-              <span>{task.assignedTo.name}</span>
-            </div>
-          )}
-
           {/* Need Help From Collaborator Chip */}
           {task.needHelpFrom && task.needHelpFrom.name && (
             <div 
@@ -460,17 +450,6 @@ export const TaskCard = ({ task, onEdit, isInsideEvent = false, dateStr = null }
               <span>{parentEvent.title}</span>
             </span>
           )}
-
-          {/* Tags */}
-          {task.tags && task.tags.map((tag, idx) => (
-            <span 
-              key={idx} 
-              className="badge" 
-              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
-            >
-              #{tag}
-            </span>
-          ))}
         </div>
       </div>
 
