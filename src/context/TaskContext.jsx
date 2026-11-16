@@ -434,10 +434,83 @@ export const TaskProvider = ({ children }) => {
 
   const [recurringDate, setRecurringDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterPriority, setFilterPriority] = useState('all'); // all, urgent, high, medium, low
-  const [filterStatus, setFilterStatus] = useState('all'); // all, active, completed
+  const [filterPriority, setFilterPriorityState] = useState(['all']); // all, urgent, high, medium, low
+  const [filterStatusNormal, setFilterStatusNormal] = useState(['todo', 'in_progress']); // default todo & in_progress in normal tab
+  const [filterStatusRecurring, setFilterStatusRecurring] = useState(['all']);
   const [filterNeedHelp, setFilterNeedHelp] = useState(false); // boolean
   const [filterAssignee, setFilterAssignee] = useState('all');
+
+  const filterStatus = taskTypeTab === 'normal' ? filterStatusNormal : filterStatusRecurring;
+
+  const setFilterPriority = useCallback((val) => {
+    setFilterPriorityState((prev) => {
+      let resolved = typeof val === 'function' ? val(prev) : val;
+      if (typeof resolved === 'string') {
+        resolved = resolved === 'all' ? ['all'] : [resolved];
+      }
+      return resolved;
+    });
+  }, []);
+
+  const setFilterStatus = useCallback((val) => {
+    const updater = (prev) => {
+      let resolved = typeof val === 'function' ? val(prev) : val;
+      if (typeof resolved === 'string') {
+        resolved = resolved === 'all' ? ['all'] : [resolved];
+      }
+      return resolved;
+    };
+    if (taskTypeTab === 'normal') {
+      setFilterStatusNormal(updater);
+    } else {
+      setFilterStatusRecurring(updater);
+    }
+  }, [taskTypeTab]);
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery('');
+    setFilterNeedHelp(false);
+    setFilterPriorityState(['all']);
+    if (taskTypeTab === 'normal') {
+      setFilterStatusNormal(['todo', 'in_progress']);
+    } else {
+      setFilterStatusRecurring(['all']);
+    }
+  }, [taskTypeTab]);
+
+  const isPriorityFiltered = useMemo(() => {
+    if (!filterPriority || filterPriority === 'all') return false;
+    if (Array.isArray(filterPriority)) {
+      if (filterPriority.length === 0 || filterPriority.includes('all')) return false;
+      if (filterPriority.length === 4) return false;
+      return true;
+    }
+    return true;
+  }, [filterPriority]);
+
+  const isStatusFiltered = useMemo(() => {
+    if (taskTypeTab === 'normal') {
+      if (Array.isArray(filterStatusNormal)) {
+        if (filterStatusNormal.length === 2 && filterStatusNormal.includes('todo') && filterStatusNormal.includes('in_progress')) {
+          return false;
+        }
+        return true;
+      }
+      return true;
+    } else {
+      if (!filterStatusRecurring || filterStatusRecurring === 'all') return false;
+      if (Array.isArray(filterStatusRecurring)) {
+        if (filterStatusRecurring.length === 0 || filterStatusRecurring.includes('all')) return false;
+        if (filterStatusRecurring.length === 3) return false;
+        return true;
+      }
+      return true;
+    }
+  }, [taskTypeTab, filterStatusNormal, filterStatusRecurring]);
+
+  const isFiltering = useMemo(() => {
+    return Boolean(searchQuery || isPriorityFiltered || isStatusFiltered || filterNeedHelp);
+  }, [searchQuery, isPriorityFiltered, isStatusFiltered, filterNeedHelp]);
   const [sortBy, setSortByState] = useState(() => {
     return localStorage.getItem('zenith_sort_by') || 'createdAt';
   });
@@ -1008,46 +1081,63 @@ export const TaskProvider = ({ children }) => {
           }
         }
 
-        // Priority Filter
-        if (filterPriority !== 'all' && task.priority !== filterPriority) {
-          return false;
+        // Priority Filter (Multiselect)
+        const allPriorities = ['urgent', 'high', 'medium', 'low'];
+        const isPriorityAll = !filterPriority || 
+          filterPriority === 'all' || 
+          (Array.isArray(filterPriority) && (filterPriority.length === 0 || filterPriority.includes('all') || allPriorities.every(p => filterPriority.includes(p))));
+        
+        if (!isPriorityAll) {
+          const activePriorities = Array.isArray(filterPriority) ? filterPriority : [filterPriority];
+          if (!activePriorities.includes(task.priority)) {
+            return false;
+          }
         }
 
-        // Status Filter
-        if (task.isEvent) {
-          const childTasks = tasks.filter((t) => t.eventId === task.id);
-          let isCompleted = false;
-          let isInProgress = false;
-          if (taskTypeTab === 'recurring') {
-            const scheduledChildren = childTasks.filter((c) => isTaskScheduledOnDate(c, recurringDate));
-            const doneChildren = scheduledChildren.filter((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate));
-            isCompleted = scheduledChildren.length > 0 && doneChildren.length === scheduledChildren.length;
-            isInProgress = !isCompleted && doneChildren.length > 0;
+        // Status Filter (Multiselect)
+        const allStatuses = ['todo', 'in_progress', 'completed'];
+        const isStatusAll = !filterStatus || 
+          filterStatus === 'all' || 
+          (Array.isArray(filterStatus) && (filterStatus.length === 0 || filterStatus.includes('all') || allStatuses.every(s => filterStatus.includes(s))));
+
+        if (!isStatusAll) {
+          const activeStatuses = Array.isArray(filterStatus) ? filterStatus : [filterStatus];
+
+          // Determine current task status
+          let currentStatus = 'todo';
+          if (task.isEvent) {
+            const childTasks = tasks.filter((t) => t.eventId === task.id);
+            let isCompleted = false;
+            let isInProgress = false;
+            if (taskTypeTab === 'recurring') {
+              const scheduledChildren = childTasks.filter((c) => isTaskScheduledOnDate(c, recurringDate));
+              const doneChildren = scheduledChildren.filter((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate));
+              isCompleted = scheduledChildren.length > 0 && doneChildren.length === scheduledChildren.length;
+              isInProgress = !isCompleted && doneChildren.length > 0;
+            } else {
+              isCompleted = task.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
+              const hasSomeDone = childTasks.some((c) => c.status === 'completed' || c.status === 'in_progress');
+              isInProgress = !isCompleted && (task.status === 'in_progress' || hasSomeDone);
+            }
+            if (isCompleted) currentStatus = 'completed';
+            else if (isInProgress) currentStatus = 'in_progress';
+            else currentStatus = 'todo';
+          } else if (taskTypeTab === 'recurring') {
+            const isDoneOnDate = Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate);
+            const stepsDoneCount = Array.isArray(task.completedStepsByDate?.[recurringDate]) ? task.completedStepsByDate[recurringDate].length : 0;
+            const totalStepsCount = Array.isArray(task.steps) ? task.steps.length : 0;
+            const isInProgressOnDate = !isDoneOnDate && stepsDoneCount > 0 && stepsDoneCount < totalStepsCount;
+
+            if (isDoneOnDate) currentStatus = 'completed';
+            else if (isInProgressOnDate) currentStatus = 'in_progress';
+            else currentStatus = 'todo';
           } else {
-            isCompleted = task.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
-            const hasSomeDone = childTasks.some((c) => c.status === 'completed' || c.status === 'in_progress');
-            isInProgress = !isCompleted && (task.status === 'in_progress' || hasSomeDone);
+            currentStatus = task.status || 'todo';
           }
 
-          if (filterStatus === 'todo' && (isCompleted || isInProgress)) return false;
-          if (filterStatus === 'in_progress' && !isInProgress) return false;
-          if (filterStatus === 'active' && isCompleted) return false;
-          if (filterStatus === 'completed' && !isCompleted) return false;
-        } else if (taskTypeTab === 'recurring') {
-          const isDoneOnDate = Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate);
-          const stepsDoneCount = Array.isArray(task.completedStepsByDate?.[recurringDate]) ? task.completedStepsByDate[recurringDate].length : 0;
-          const totalStepsCount = Array.isArray(task.steps) ? task.steps.length : 0;
-          const isInProgressOnDate = !isDoneOnDate && stepsDoneCount > 0 && stepsDoneCount < totalStepsCount;
-
-          if (filterStatus === 'todo' && (isDoneOnDate || isInProgressOnDate)) return false;
-          if (filterStatus === 'in_progress' && !isInProgressOnDate) return false;
-          if (filterStatus === 'active' && isDoneOnDate) return false;
-          if (filterStatus === 'completed' && !isDoneOnDate) return false;
-        } else {
-          if (filterStatus === 'todo' && task.status !== 'todo') return false;
-          if (filterStatus === 'in_progress' && task.status !== 'in_progress') return false;
-          if (filterStatus === 'active' && task.status === 'completed') return false;
-          if (filterStatus === 'completed' && task.status !== 'completed') return false;
+          if (!activeStatuses.includes(currentStatus)) {
+            return false;
+          }
         }
 
         // Need Help Filter
@@ -1216,6 +1306,10 @@ export const TaskProvider = ({ children }) => {
     setFilterPriority,
     filterStatus,
     setFilterStatus,
+    isPriorityFiltered,
+    isStatusFiltered,
+    isFiltering,
+    resetFilters,
     filterNeedHelp,
     setFilterNeedHelp,
     filterAssignee,

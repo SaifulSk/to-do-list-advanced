@@ -14,17 +14,9 @@ export const TaskListView = ({
     filteredTasks, 
     tasks, 
     taskTypeTab,
-    searchQuery, 
-    filterPriority, 
-    filterStatus, 
-    filterNeedHelp, 
-    setSearchQuery, 
-    setFilterPriority, 
-    setFilterStatus, 
-    setFilterNeedHelp 
+    isFiltering,
+    resetFilters
   } = useTasks();
-
-  const isFiltering = searchQuery || filterPriority !== 'all' || filterStatus !== 'all' || filterNeedHelp;
 
   if (tasks.length === 0) {
     return (
@@ -65,12 +57,7 @@ export const TaskListView = ({
           </div>
           <button 
             className="btn btn-secondary" 
-            onClick={() => {
-              setSearchQuery('');
-              setFilterPriority('all');
-              setFilterStatus('all');
-              setFilterNeedHelp(false);
-            }}
+            onClick={resetFilters}
           >
             <span>Reset All Filters</span>
           </button>

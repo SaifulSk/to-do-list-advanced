@@ -3,7 +3,9 @@ import { CheckCircle2 } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 
 export const StatsOverview = () => {
-  const { stats, filterStatus, setFilterStatus } = useTasks();
+  const { stats, filterStatus, setFilterStatus, taskTypeTab } = useTasks();
+
+  const isCompletedOnly = Array.isArray(filterStatus) && filterStatus.length === 1 && filterStatus[0] === 'completed';
 
   return (
     <div className="stats-grid">
@@ -11,7 +13,7 @@ export const StatsOverview = () => {
       <div 
         className="stat-card" 
         style={{ cursor: 'pointer' }}
-        onClick={() => setFilterStatus('all')}
+        onClick={() => setFilterStatus(['all'])}
         title="View All Tasks"
       >
         <div className="stat-info">
@@ -27,7 +29,13 @@ export const StatsOverview = () => {
       <div 
         className="stat-card"
         style={{ cursor: 'pointer' }}
-        onClick={() => setFilterStatus(filterStatus === 'completed' ? 'all' : 'completed')}
+        onClick={() => {
+          if (isCompletedOnly) {
+            setFilterStatus(taskTypeTab === 'normal' ? ['todo', 'in_progress'] : ['all']);
+          } else {
+            setFilterStatus(['completed']);
+          }
+        }}
         title="Filter Completed Tasks"
       >
         <div className="stat-info">

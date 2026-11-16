@@ -52,13 +52,8 @@ export const TaskTableView = ({
     deleteEvent,
     updateTask,
     searchQuery,
-    filterPriority,
-    filterStatus,
-    filterNeedHelp,
-    setSearchQuery,
-    setFilterPriority,
-    setFilterStatus,
-    setFilterNeedHelp
+    isFiltering,
+    resetFilters
   } = useTasks();
 
   const [deleteTargetTask, setDeleteTargetTask] = useState(null);
@@ -91,8 +86,6 @@ export const TaskTableView = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [activeStepsTaskId]);
-
-  const isFiltering = searchQuery || filterPriority !== 'all' || filterStatus !== 'all' || filterNeedHelp;
 
   const handleCyclePriority = (e, task) => {
     e.stopPropagation();
@@ -165,12 +158,7 @@ export const TaskTableView = ({
           </div>
           <button 
             className="btn btn-secondary" 
-            onClick={() => {
-              setSearchQuery('');
-              setFilterPriority('all');
-              setFilterStatus('all');
-              setFilterNeedHelp(false);
-            }}
+            onClick={resetFilters}
           >
             <span>Reset All Filters</span>
           </button>

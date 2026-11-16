@@ -29,6 +29,9 @@ export const TaskFilters = () => {
     setFilterStatus,
     filterNeedHelp,
     setFilterNeedHelp,
+    isPriorityFiltered,
+    isStatusFiltered,
+    resetFilters,
     sortBy,
     setSortBy,
     sortOrder,
@@ -56,27 +59,110 @@ export const TaskFilters = () => {
   }, [isMenuOpen]);
 
   // Check if any filters are actively applied (non-default)
-  const isFilterActive = filterStatus !== 'all' || filterNeedHelp || filterPriority !== 'all';
+  const isFilterActive = isStatusFiltered || filterNeedHelp || isPriorityFiltered;
+
+  const allStatuses = ['todo', 'in_progress', 'completed'];
+  const isAllStatusSelected = !filterStatus || filterStatus === 'all' || 
+    (Array.isArray(filterStatus) && (filterStatus.includes('all') || allStatuses.every(s => filterStatus.includes(s))));
+  
+  const isTodoSelected = !isAllStatusSelected && Array.isArray(filterStatus) && filterStatus.includes('todo');
+  const isInProgressSelected = !isAllStatusSelected && Array.isArray(filterStatus) && filterStatus.includes('in_progress');
+  const isCompletedSelected = !isAllStatusSelected && Array.isArray(filterStatus) && filterStatus.includes('completed');
+
+  const allPriorities = ['urgent', 'high', 'medium', 'low'];
+  const isAllPrioritySelected = !filterPriority || filterPriority === 'all' || 
+    (Array.isArray(filterPriority) && (filterPriority.includes('all') || allPriorities.every(p => filterPriority.includes(p))));
+
+  const isUrgentSelected = !isAllPrioritySelected && Array.isArray(filterPriority) && filterPriority.includes('urgent');
+  const isHighSelected = !isAllPrioritySelected && Array.isArray(filterPriority) && filterPriority.includes('high');
+  const isMediumSelected = !isAllPrioritySelected && Array.isArray(filterPriority) && filterPriority.includes('medium');
+  const isLowSelected = !isAllPrioritySelected && Array.isArray(filterPriority) && filterPriority.includes('low');
+
+  const handleToggleStatus = (statusKey) => {
+    setFilterNeedHelp(false);
+    if (isAllStatusSelected) {
+      setFilterStatus([statusKey]);
+      return;
+    }
+    const current = Array.isArray(filterStatus) ? filterStatus : [filterStatus];
+    let next;
+    if (current.includes(statusKey)) {
+      next = current.filter((s) => s !== statusKey);
+      if (next.length === 0) {
+        next = ['all'];
+      }
+    } else {
+      next = [...current, statusKey];
+      if (allStatuses.every((s) => next.includes(s))) {
+        next = ['all'];
+      }
+    }
+    setFilterStatus(next);
+  };
+
+  const handleSelectAllStatus = () => {
+    setFilterNeedHelp(false);
+    setFilterStatus(['all']);
+  };
+
+  const handleTogglePriority = (priorityKey) => {
+    if (isAllPrioritySelected) {
+      setFilterPriority([priorityKey]);
+      return;
+    }
+    const current = Array.isArray(filterPriority) ? filterPriority : [filterPriority];
+    let next;
+    if (current.includes(priorityKey)) {
+      next = current.filter((p) => p !== priorityKey);
+      if (next.length === 0) {
+        next = ['all'];
+      }
+    } else {
+      next = [...current, priorityKey];
+      if (allPriorities.every((p) => next.includes(p))) {
+        next = ['all'];
+      }
+    }
+    setFilterPriority(next);
+  };
+
+  const handleSelectAllPriority = () => {
+    setFilterPriority(['all']);
+  };
 
   // Labels for current selections
   const getStatusLabel = () => {
-    if (filterNeedHelp) return 'Need Help';
-    switch (filterStatus) {
-      case 'todo': return 'To Do';
-      case 'in_progress': return 'In Progress';
-      case 'completed': return 'Completed';
-      default: return 'All Status';
+    if (filterNeedHelp) {
+      if (isAllStatusSelected) return 'Need Help';
+      const parts = [];
+      if (filterStatus.includes('todo')) parts.push('To Do');
+      if (filterStatus.includes('in_progress')) parts.push('In Progress');
+      if (filterStatus.includes('completed')) parts.push('Completed');
+      return `Need Help (${parts.join(', ')})`;
     }
+    if (isAllStatusSelected) return 'All Status';
+    const labels = [];
+    if (Array.isArray(filterStatus)) {
+      if (filterStatus.includes('todo')) labels.push('To Do');
+      if (filterStatus.includes('in_progress')) labels.push('In Progress');
+      if (filterStatus.includes('completed')) labels.push('Completed');
+    }
+    if (labels.length === 0) return 'All Status';
+    return labels.join(', ');
   };
 
   const getPriorityLabel = () => {
-    switch (filterPriority) {
-      case 'urgent': return 'Urgent';
-      case 'high': return 'High';
-      case 'medium': return 'Medium';
-      case 'low': return 'Low';
-      default: return 'All Priorities';
+    if (isAllPrioritySelected) return 'All Priorities';
+    const labels = [];
+    if (Array.isArray(filterPriority)) {
+      if (filterPriority.includes('urgent')) labels.push('Urgent');
+      if (filterPriority.includes('high')) labels.push('High');
+      if (filterPriority.includes('medium')) labels.push('Medium');
+      if (filterPriority.includes('low')) labels.push('Low');
     }
+    if (labels.length === 0) return 'All Priorities';
+    if (labels.length > 2) return `${labels.length} Priorities`;
+    return labels.join(', ');
   };
 
   const getSortLabel = () => {
@@ -90,9 +176,7 @@ export const TaskFilters = () => {
   };
 
   const handleResetFilters = () => {
-    setFilterStatus('all');
-    setFilterNeedHelp(false);
-    setFilterPriority('all');
+    resetFilters();
   };
 
   return (
@@ -184,54 +268,38 @@ export const TaskFilters = () => {
                     <div className="filter-submenu-panel">
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterStatus === 'all' && !filterNeedHelp ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterStatus('all');
-                          setFilterNeedHelp(false);
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isAllStatusSelected && !filterNeedHelp ? 'selected' : ''}`}
+                        onClick={handleSelectAllStatus}
                       >
                         <span className="filter-sub-text">All Status</span>
-                        {filterStatus === 'all' && !filterNeedHelp && <Check size={14} className="filter-check" />}
+                        {isAllStatusSelected && !filterNeedHelp && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterStatus === 'todo' && !filterNeedHelp ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterStatus('todo');
-                          setFilterNeedHelp(false);
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isTodoSelected && !filterNeedHelp ? 'selected' : ''}`}
+                        onClick={() => handleToggleStatus('todo')}
                       >
                         <span className="filter-sub-text">To Do</span>
-                        {filterStatus === 'todo' && !filterNeedHelp && <Check size={14} className="filter-check" />}
+                        {isTodoSelected && !filterNeedHelp && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterStatus === 'in_progress' && !filterNeedHelp ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterStatus('in_progress');
-                          setFilterNeedHelp(false);
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isInProgressSelected && !filterNeedHelp ? 'selected' : ''}`}
+                        onClick={() => handleToggleStatus('in_progress')}
                       >
                         <span className="filter-sub-text">In Progress</span>
-                        {filterStatus === 'in_progress' && !filterNeedHelp && <Check size={14} className="filter-check" />}
+                        {isInProgressSelected && !filterNeedHelp && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterStatus === 'completed' && !filterNeedHelp ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterStatus('completed');
-                          setFilterNeedHelp(false);
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isCompletedSelected && !filterNeedHelp ? 'selected' : ''}`}
+                        onClick={() => handleToggleStatus('completed')}
                       >
                         <span className="filter-sub-text">Completed</span>
-                        {filterStatus === 'completed' && !filterNeedHelp && <Check size={14} className="filter-check" />}
+                        {isCompletedSelected && !filterNeedHelp && <Check size={14} className="filter-check" />}
                       </button>
 
                       <div className="filter-submenu-divider" />
@@ -241,7 +309,6 @@ export const TaskFilters = () => {
                         className={`filter-sub-item ${filterNeedHelp ? 'selected' : ''}`}
                         onClick={() => {
                           setFilterNeedHelp(!filterNeedHelp);
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -281,74 +348,59 @@ export const TaskFilters = () => {
                     <div className="filter-submenu-panel">
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterPriority === 'all' ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterPriority('all');
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isAllPrioritySelected ? 'selected' : ''}`}
+                        onClick={handleSelectAllPriority}
                       >
                         <span className="filter-sub-text">All Priorities</span>
-                        {filterPriority === 'all' && <Check size={14} className="filter-check" />}
+                        {isAllPrioritySelected && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterPriority === 'urgent' ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterPriority('urgent');
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isUrgentSelected ? 'selected' : ''}`}
+                        onClick={() => handleTogglePriority('urgent')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Flame size={13} color="var(--priority-urgent)" />
                           <span className="filter-sub-text">Urgent</span>
                         </div>
-                        {filterPriority === 'urgent' && <Check size={14} className="filter-check" />}
+                        {isUrgentSelected && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterPriority === 'high' ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterPriority('high');
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isHighSelected ? 'selected' : ''}`}
+                        onClick={() => handleTogglePriority('high')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <AlertTriangle size={13} color="var(--priority-high)" />
                           <span className="filter-sub-text">High</span>
                         </div>
-                        {filterPriority === 'high' && <Check size={14} className="filter-check" />}
+                        {isHighSelected && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterPriority === 'medium' ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterPriority('medium');
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isMediumSelected ? 'selected' : ''}`}
+                        onClick={() => handleTogglePriority('medium')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Clock size={13} color="var(--priority-medium)" />
                           <span className="filter-sub-text">Medium</span>
                         </div>
-                        {filterPriority === 'medium' && <Check size={14} className="filter-check" />}
+                        {isMediumSelected && <Check size={14} className="filter-check" />}
                       </button>
 
                       <button
                         type="button"
-                        className={`filter-sub-item ${filterPriority === 'low' ? 'selected' : ''}`}
-                        onClick={() => {
-                          setFilterPriority('low');
-                          if (window.innerWidth <= 640) setIsMenuOpen(false);
-                        }}
+                        className={`filter-sub-item ${isLowSelected ? 'selected' : ''}`}
+                        onClick={() => handleTogglePriority('low')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <ArrowDown size={13} color="var(--priority-low)" />
                           <span className="filter-sub-text">Low</span>
                         </div>
-                        {filterPriority === 'low' && <Check size={14} className="filter-check" />}
+                        {isLowSelected && <Check size={14} className="filter-check" />}
                       </button>
                     </div>
                   )}
