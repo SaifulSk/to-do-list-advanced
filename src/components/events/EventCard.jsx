@@ -27,7 +27,8 @@ export const EventCard = ({
     tasks, 
     deleteEvent, 
     recurringDate,
-    isTaskScheduledOnDate
+    isTaskScheduledOnDate,
+    isTaskMatchingFilters
   } = useTasks();
 
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
@@ -63,6 +64,11 @@ export const EventCard = ({
 
   const percentage = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
   const isAllDone = totalSubtasks > 0 && completedSubtasks === totalSubtasks;
+
+  // Filter subtasks taskwise based on active filters
+  const visibleChildTasks = childTasks.filter((sub) => 
+    isTaskMatchingFilters ? isTaskMatchingFilters(sub, event) : true
+  );
 
   // Date range text (for normal events with explicit dates; no recurring tags/icons)
   const dateInfoText = (() => {
@@ -287,7 +293,7 @@ export const EventCard = ({
             borderBottomRightRadius: 'var(--radius-lg)'
           }}
         >
-          {childTasks.length === 0 ? (
+          {visibleChildTasks.length === 0 ? (
             <div 
               style={{ 
                 padding: '22px 16px', 
@@ -299,7 +305,7 @@ export const EventCard = ({
               }}
             >
               <p style={{ fontSize: '0.8125rem', margin: '0 0 10px' }}>
-                {isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'}
+                {isRecurringEvent ? 'No matching tasks scheduled for this day in this event.' : 'No matching tasks in this event.'}
               </p>
               <button 
                 type="button"
@@ -313,7 +319,7 @@ export const EventCard = ({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {childTasks.map((task) => (
+              {visibleChildTasks.map((task) => (
                 <TaskCard 
                   key={task.id} 
                   task={task} 

@@ -1043,6 +1043,83 @@ export const TaskProvider = ({ children }) => {
     await deleteTask(eventId);
   };
 
+  // Helper to check if an individual task/subtask matches current filters
+  const isTaskMatchingFilters = useCallback((task, parentEvent = null) => {
+    if (!task) return false;
+
+    // 1. Search Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = task.title?.toLowerCase().includes(q);
+      const matchDesc = task.description?.toLowerCase().includes(q);
+      const matchAssignee = task.assignedTo?.name?.toLowerCase().includes(q);
+      const matchHelper = task.needHelpFrom?.name?.toLowerCase().includes(q);
+      const matchTags = task.tags?.some((t) => t.toLowerCase().includes(q));
+      const matchParent = parentEvent && (
+        parentEvent.title?.toLowerCase().includes(q) ||
+        parentEvent.description?.toLowerCase().includes(q)
+      );
+      if (!matchTitle && !matchDesc && !matchAssignee && !matchHelper && !matchTags && !matchParent) {
+        return false;
+      }
+    }
+
+    // 2. Priority Filter (Multiselect)
+    const allPriorities = ['urgent', 'high', 'medium', 'low'];
+    const isPriorityAll = !filterPriority || 
+      filterPriority === 'all' || 
+      (Array.isArray(filterPriority) && (filterPriority.length === 0 || filterPriority.includes('all') || allPriorities.every(p => filterPriority.includes(p))));
+    
+    if (!isPriorityAll) {
+      const activePriorities = Array.isArray(filterPriority) ? filterPriority : [filterPriority];
+      if (!activePriorities.includes(task.priority)) {
+        return false;
+      }
+    }
+
+    // 3. Status Filter (Multiselect)
+    const allStatuses = ['todo', 'in_progress', 'completed'];
+    const isStatusAll = !filterStatus || 
+      filterStatus === 'all' || 
+      (Array.isArray(filterStatus) && (filterStatus.length === 0 || filterStatus.includes('all') || allStatuses.every(s => filterStatus.includes(s))));
+
+    if (!isStatusAll) {
+      const activeStatuses = Array.isArray(filterStatus) ? filterStatus : [filterStatus];
+
+      let currentStatus = 'todo';
+      if (taskTypeTab === 'recurring') {
+        const isDoneOnDate = Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate);
+        const stepsDoneCount = Array.isArray(task.completedStepsByDate?.[recurringDate]) ? task.completedStepsByDate[recurringDate].length : 0;
+        const totalStepsCount = Array.isArray(task.steps) ? task.steps.length : 0;
+        const isInProgressOnDate = !isDoneOnDate && stepsDoneCount > 0 && stepsDoneCount < totalStepsCount;
+
+        if (isDoneOnDate) currentStatus = 'completed';
+        else if (isInProgressOnDate || task.status === 'in_progress') currentStatus = 'in_progress';
+        else currentStatus = 'todo';
+      } else {
+        if (task.status === 'completed') currentStatus = 'completed';
+        else if (task.status === 'in_progress') currentStatus = 'in_progress';
+        else currentStatus = 'todo';
+      }
+
+      if (!activeStatuses.includes(currentStatus)) {
+        return false;
+      }
+    }
+
+    // 4. Need Help Filter
+    if (filterNeedHelp && (!task.needHelpFrom || !task.needHelpFrom.name)) {
+      return false;
+    }
+
+    // 5. Assignee / Team Filter
+    if (filterAssignee !== 'all' && task.assignedTo?.name !== filterAssignee && task.needHelpFrom?.name !== filterAssignee) {
+      return false;
+    }
+
+    return true;
+  }, [searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, taskTypeTab, recurringDate]);
+
   // Filtered and Sorted Tasks (Filtered according to active tab: normal vs recurring on recurringDate)
   const filteredTasks = useMemo(() => {
     let baseTasks;
@@ -1062,95 +1139,28 @@ export const TaskProvider = ({ children }) => {
 
     return baseTasks
       .filter((task) => {
-        // Search Filter
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchTitle = task.title?.toLowerCase().includes(q);
-          const matchDesc = task.description?.toLowerCase().includes(q);
-          const matchAssignee = task.assignedTo?.name?.toLowerCase().includes(q);
-          const matchHelper = task.needHelpFrom?.name?.toLowerCase().includes(q);
-          const matchTags = task.tags?.some((t) => t.toLowerCase().includes(q));
-          const matchSubtask = task.isEvent && tasks.some((sub) => sub.eventId === task.id && (
-            sub.title?.toLowerCase().includes(q) ||
-            sub.description?.toLowerCase().includes(q) ||
-            sub.assignedTo?.name?.toLowerCase().includes(q) ||
-            sub.needHelpFrom?.name?.toLowerCase().includes(q)
-          ));
-          if (!matchTitle && !matchDesc && !matchAssignee && !matchHelper && !matchTags && !matchSubtask) {
-            return false;
-          }
-        }
+        if (task.isEvent) {
+          const allChildren = tasks.filter((t) => t.eventId === task.id);
+          const candidateChildren = taskTypeTab === 'recurring'
+            ? allChildren.filter((c) => {
+                if (c.recurrence && c.recurrence !== 'none') {
+                  return isTaskScheduledOnDate(c, recurringDate);
+                }
+                return true;
+              })
+            : allChildren;
 
-        // Priority Filter (Multiselect)
-        const allPriorities = ['urgent', 'high', 'medium', 'low'];
-        const isPriorityAll = !filterPriority || 
-          filterPriority === 'all' || 
-          (Array.isArray(filterPriority) && (filterPriority.length === 0 || filterPriority.includes('all') || allPriorities.every(p => filterPriority.includes(p))));
-        
-        if (!isPriorityAll) {
-          const activePriorities = Array.isArray(filterPriority) ? filterPriority : [filterPriority];
-          if (!activePriorities.includes(task.priority)) {
-            return false;
-          }
-        }
-
-        // Status Filter (Multiselect)
-        const allStatuses = ['todo', 'in_progress', 'completed'];
-        const isStatusAll = !filterStatus || 
-          filterStatus === 'all' || 
-          (Array.isArray(filterStatus) && (filterStatus.length === 0 || filterStatus.includes('all') || allStatuses.every(s => filterStatus.includes(s))));
-
-        if (!isStatusAll) {
-          const activeStatuses = Array.isArray(filterStatus) ? filterStatus : [filterStatus];
-
-          // Determine current task status
-          let currentStatus = 'todo';
-          if (task.isEvent) {
-            const childTasks = tasks.filter((t) => t.eventId === task.id);
-            let isCompleted = false;
-            let isInProgress = false;
-            if (taskTypeTab === 'recurring') {
-              const scheduledChildren = childTasks.filter((c) => isTaskScheduledOnDate(c, recurringDate));
-              const doneChildren = scheduledChildren.filter((c) => Array.isArray(c.completedDates) && c.completedDates.includes(recurringDate));
-              isCompleted = scheduledChildren.length > 0 && doneChildren.length === scheduledChildren.length;
-              isInProgress = !isCompleted && doneChildren.length > 0;
-            } else {
-              isCompleted = task.status === 'completed' || (childTasks.length > 0 && childTasks.every((c) => c.status === 'completed'));
-              const hasSomeDone = childTasks.some((c) => c.status === 'completed' || c.status === 'in_progress');
-              isInProgress = !isCompleted && (task.status === 'in_progress' || hasSomeDone);
-            }
-            if (isCompleted) currentStatus = 'completed';
-            else if (isInProgress) currentStatus = 'in_progress';
-            else currentStatus = 'todo';
-          } else if (taskTypeTab === 'recurring') {
-            const isDoneOnDate = Array.isArray(task.completedDates) && task.completedDates.includes(recurringDate);
-            const stepsDoneCount = Array.isArray(task.completedStepsByDate?.[recurringDate]) ? task.completedStepsByDate[recurringDate].length : 0;
-            const totalStepsCount = Array.isArray(task.steps) ? task.steps.length : 0;
-            const isInProgressOnDate = !isDoneOnDate && stepsDoneCount > 0 && stepsDoneCount < totalStepsCount;
-
-            if (isDoneOnDate) currentStatus = 'completed';
-            else if (isInProgressOnDate) currentStatus = 'in_progress';
-            else currentStatus = 'todo';
+          if (candidateChildren.length > 0) {
+            // Taskwise: only show event if it has at least one subtask matching the filter
+            return candidateChildren.some((c) => isTaskMatchingFilters(c, task));
           } else {
-            currentStatus = task.status || 'todo';
-          }
-
-          if (!activeStatuses.includes(currentStatus)) {
-            return false;
+            // Empty event: check if event itself matches
+            return isTaskMatchingFilters(task);
           }
         }
 
-        // Need Help Filter
-        if (filterNeedHelp && (!task.needHelpFrom || !task.needHelpFrom.name)) {
-          return false;
-        }
-
-        // Assignee / Team Filter
-        if (filterAssignee !== 'all' && task.assignedTo?.name !== filterAssignee && task.needHelpFrom?.name !== filterAssignee) {
-          return false;
-        }
-
-        return true;
+        // Standalone task
+        return isTaskMatchingFilters(task);
       })
       .sort((a, b) => {
         const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
@@ -1171,7 +1181,7 @@ export const TaskProvider = ({ children }) => {
 
         return sortOrder === 'asc' ? compare : -compare;
       });
-  }, [taskTypeTab, normalTasks, recurringTasks, tasks, recurringDate, searchQuery, filterPriority, filterStatus, filterNeedHelp, filterAssignee, sortBy, sortOrder, isTaskScheduledOnDate]);
+  }, [taskTypeTab, normalTasks, recurringTasks, tasks, recurringDate, isTaskMatchingFilters, sortBy, sortOrder, isTaskScheduledOnDate]);
 
   // Combined all assignees from tasks + Assignee Master
   const allAssignees = useMemo(() => {
@@ -1309,6 +1319,7 @@ export const TaskProvider = ({ children }) => {
     isPriorityFiltered,
     isStatusFiltered,
     isFiltering,
+    isTaskMatchingFilters,
     resetFilters,
     filterNeedHelp,
     setFilterNeedHelp,

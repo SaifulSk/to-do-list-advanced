@@ -53,6 +53,7 @@ export const TaskTableView = ({
     updateTask,
     searchQuery,
     isFiltering,
+    isTaskMatchingFilters,
     resetFilters
   } = useTasks();
 
@@ -222,7 +223,7 @@ export const TaskTableView = ({
               const accentColor = task.color || '#6366f1';
               const isRecurringEvent = task.eventType === 'recurring' || Boolean(task.recurrence && task.recurrence !== 'none');
               const allChildTasks = tasks.filter((t) => t.eventId === task.id);
-              const childTasks = isRecurringEvent
+              const scheduledChildTasks = isRecurringEvent
                 ? allChildTasks.filter((t) => {
                     if (t.recurrence && t.recurrence !== 'none') {
                       return isTaskScheduledOnDate ? isTaskScheduledOnDate(t, recurringDate) : true;
@@ -230,8 +231,8 @@ export const TaskTableView = ({
                     return true;
                   })
                 : allChildTasks;
-              const totalCount = childTasks.length;
-              const completedCount = childTasks.filter((t) => {
+              const totalCount = scheduledChildTasks.length;
+              const completedCount = scheduledChildTasks.filter((t) => {
                 if (isRecurringEvent || (t.recurrence && t.recurrence !== 'none')) {
                   return Array.isArray(t.completedDates) && t.completedDates.includes(recurringDate);
                 }
@@ -239,6 +240,11 @@ export const TaskTableView = ({
               }).length;
               const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
               const isAllDone = totalCount > 0 && completedCount === totalCount;
+
+              // Filter subtasks taskwise based on active filters
+              const childTasks = scheduledChildTasks.filter((sub) => 
+                isTaskMatchingFilters ? isTaskMatchingFilters(sub, task) : true
+              );
 
               return (
                 <React.Fragment key={task.id}>
@@ -369,7 +375,7 @@ export const TaskTableView = ({
                     childTasks.length === 0 ? (
                       <tr className="event-table-empty-row" style={{ background: 'var(--bg-app)' }}>
                         <td colSpan={colCount} style={{ padding: '14px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                          <span>{isRecurringEvent ? 'No tasks scheduled for this day in this event.' : 'No tasks in this event yet.'}</span>
+                          <span>{isRecurringEvent ? 'No matching tasks scheduled for this day in this event.' : 'No matching tasks in this event.'}</span>
                         </td>
                       </tr>
                     ) : (
