@@ -160,7 +160,7 @@ export const TaskFormModal = ({
 
     prevIsOpenRef.current = isOpen;
     prevTaskIdRef.current = initialTask?.id || null;
-  }, [isOpen, initialTask, defaultDate]);
+  }, [isOpen, initialTask, defaultDate, defaultEventId, defaultIsRecurring]);
 
   if (!isOpen) return null;
 
@@ -292,11 +292,6 @@ export const TaskFormModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
-
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
 
     // Sanitize steps
     const cleanedSteps = hasSteps

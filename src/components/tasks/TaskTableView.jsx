@@ -19,6 +19,8 @@ import {
   ChevronDown, 
   ChevronUp, 
   ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   PauseCircle, 
   PlayCircle, 
   Calendar,
@@ -63,6 +65,22 @@ export const TaskTableView = ({
   const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
   const [moveTargetTask, setMoveTargetTask] = useState(null);
   const [collapsedEventIds, setCollapsedEventIds] = useState(() => new Set());
+
+  const tableEvents = useMemo(() => filteredTasks.filter((t) => t.isEvent), [filteredTasks]);
+  const hasEvents = tableEvents.length > 0;
+  const areAllEventsExpanded = hasEvents && tableEvents.every((e) => !collapsedEventIds.has(e.id));
+
+  const toggleExpandCollapseAll = () => {
+    if (areAllEventsExpanded) {
+      setCollapsedEventIds(new Set(tableEvents.map((e) => e.id)));
+    } else {
+      setCollapsedEventIds((prev) => {
+        const next = new Set(prev);
+        tableEvents.forEach((e) => next.delete(e.id));
+        return next;
+      });
+    }
+  };
 
   const toggleEventExpand = (eventId) => {
     setCollapsedEventIds((prev) => {
@@ -205,7 +223,27 @@ export const TaskTableView = ({
       <table className="task-table">
         <thead>
           <tr>
-            <th style={{ width: '50px', textAlign: 'center' }}>Done</th>
+            <th style={{ width: '50px', textAlign: 'center' }}>
+              {hasEvents ? (
+                <button
+                  type="button"
+                  className="btn-icon"
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    margin: '0 auto',
+                    color: areAllEventsExpanded ? 'var(--primary)' : 'var(--text-muted)'
+                  }}
+                  onClick={toggleExpandCollapseAll}
+                  title={areAllEventsExpanded ? "Collapse All Events" : "Expand All Events"}
+                  aria-label={areAllEventsExpanded ? "Collapse All Events" : "Expand All Events"}
+                >
+                  {areAllEventsExpanded ? <ChevronsDownUp size={15} /> : <ChevronsUpDown size={15} />}
+                </button>
+              ) : (
+                <span>Done</span>
+              )}
+            </th>
             <th style={{ minWidth: '220px' }}>Task</th>
             <th style={{ width: '110px' }}>Status</th>
             <th style={{ width: '110px' }}>Priority</th>

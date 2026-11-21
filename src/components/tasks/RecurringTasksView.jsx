@@ -16,7 +16,8 @@ import {
   ChevronUp, 
   AlertCircle,
   Banknote,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { 
   format, 

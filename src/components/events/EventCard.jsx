@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Calendar, 
   Users, 
@@ -8,8 +9,11 @@ import {
   Trash2, 
   ChevronDown, 
   ChevronUp, 
+  ChevronRight,
+  ListChecks,
   AlertCircle,
-  Plus 
+  Plus,
+  X
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTasks } from '../../context/TaskContext';
@@ -21,7 +25,8 @@ export const EventCard = ({
   onOpenNewTaskForEvent, 
   onEditTask,
   dateStr: propDateStr = null,
-  initialExpanded = true
+  initialExpanded = true,
+  expandInline = false
 }) => {
   const { 
     tasks, 
@@ -32,6 +37,7 @@ export const EventCard = ({
   } = useTasks();
 
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTargetEvent, setDeleteTargetEvent] = useState(null);
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
 
@@ -108,10 +114,16 @@ export const EventCard = ({
           userSelect: 'none',
           borderTopLeftRadius: 'var(--radius-lg)',
           borderTopRightRadius: 'var(--radius-lg)',
-          background: isExpanded ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
+          background: (expandInline && isExpanded) ? 'var(--bg-surface-elevated)' : 'var(--bg-surface)',
           transition: 'background var(--transition-fast)'
         }}
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => {
+          if (expandInline) {
+            setIsExpanded(!isExpanded);
+          } else {
+            setIsModalOpen(true);
+          }
+        }}
       >
         {/* Left: Icon & Title & Metadata */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: 0 }}>
@@ -278,8 +290,8 @@ export const EventCard = ({
         </div>
       </div>
 
-      {/* Expanded Body: Subtasks rendered exactly like non-event tasks using TaskCard */}
-      {isExpanded && (
+      {/* Expanded Body: only when expandInline is true */}
+      {expandInline && isExpanded && (
         <div 
           className="event-folder-body" 
           style={{ 
@@ -421,6 +433,188 @@ export const EventCard = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Event Subtasks Modal (like Calendar View Modal) */}
+      {isModalOpen && createPortal(
+        <div 
+          className="modal-overlay" 
+          onClick={() => setIsModalOpen(false)}
+          style={{ zIndex: 1050 }}
+        >
+          <div 
+            className="modal-dialog" 
+            style={{ maxWidth: '640px', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <div 
+                  style={{ 
+                    width: '28px', 
+                    height: '28px', 
+                    borderRadius: '8px', 
+                    background: `${accentColor}18`, 
+                    color: accentColor, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <Calendar size={16} />
+                </div>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {event.title}
+                </span>
+                {isAllDone && (
+                  <span className="badge badge-completed" style={{ fontSize: '0.6875rem', flexShrink: 0 }}>
+                    <CheckCircle2 size={11} />
+                    <span>All Done</span>
+                  </span>
+                )}
+                {event.priority && (
+                  <span className={`badge badge-${event.priority}`} style={{ textTransform: 'capitalize', fontSize: '0.6875rem', flexShrink: 0 }}>
+                    {event.priority}
+                  </span>
+                )}
+              </div>
+              <button 
+                className="btn-icon" 
+                onClick={() => setIsModalOpen(false)}
+                type="button"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body" style={{ flex: 1, overflowY: 'auto' }}>
+              {event.description && (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                  {event.description}
+                </p>
+              )}
+
+              {/* Sub-header with Dates, Budget, and Add Task button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                  {dateInfoText && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Calendar size={12} color="var(--primary)" />
+                      <span>{dateInfoText}</span>
+                    </span>
+                  )}
+                  {event.amount !== undefined && event.amount !== null && event.amount !== '' && (
+                    <span className="badge badge-amount" style={{ fontSize: '0.6875rem' }}>
+                      <Banknote size={10} />
+                      <span>Budget: {event.currency || '₹'}{Number(event.amount).toLocaleString()}</span>
+                    </span>
+                  )}
+                </div>
+
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  style={{ padding: '6px 12px', fontSize: '0.8125rem', gap: '4px' }}
+                  onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(event.id, isRecurringEvent)}
+                >
+                  <Plus size={14} />
+                  <span>Add Task</span>
+                </button>
+              </div>
+
+              {/* Progress Summary & Bar */}
+              <div style={{ padding: '12px 0 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                    {totalSubtasks === 0 
+                      ? (isRecurringEvent ? 'No tasks scheduled for this day' : 'No tasks yet') 
+                      : `${completedSubtasks} of ${totalSubtasks} tasks completed`}
+                  </span>
+                  <span style={{ fontWeight: 700, color: percentage === 100 ? '#10b981' : accentColor }}>
+                    {percentage}%
+                  </span>
+                </div>
+                <div 
+                  className="card-steps-bar-track" 
+                  style={{ height: '6px', background: 'var(--bg-hover)', borderRadius: '3px', overflow: 'hidden' }}
+                >
+                  <div 
+                    className="card-steps-bar-fill" 
+                    style={{ 
+                      width: `${percentage}%`, 
+                      background: percentage === 100 ? '#10b981' : accentColor, 
+                      height: '100%',
+                      transition: 'width 0.3s ease'
+                    }} 
+                  />
+                </div>
+              </div>
+
+              {/* Subtasks Section Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div className="legend-dot" style={{ background: accentColor }} />
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                  Event Tasks ({visibleChildTasks.length})
+                </h4>
+              </div>
+
+              {/* Subtasks List */}
+              {visibleChildTasks.length === 0 ? (
+                <div 
+                  style={{ 
+                    padding: '24px 16px', 
+                    textAlign: 'center', 
+                    background: 'var(--bg-surface-elevated)', 
+                    borderRadius: 'var(--radius-md)', 
+                    border: '1px dashed var(--border-medium)',
+                    color: 'var(--text-muted)'
+                  }}
+                >
+                  <p style={{ fontSize: '0.8125rem', margin: '0 0 10px' }}>
+                    {isRecurringEvent ? 'No matching tasks scheduled for this day in this event.' : 'No tasks in this event yet.'}
+                  </p>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '0.75rem', gap: '4px' }}
+                    onClick={() => onOpenNewTaskForEvent && onOpenNewTaskForEvent(event.id, isRecurringEvent)}
+                  >
+                    <Plus size={13} />
+                    <span>Add Task to this Event</span>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {visibleChildTasks.map((task) => (
+                    <TaskCard 
+                      key={task.id} 
+                      task={task} 
+                      onEdit={onEditTask} 
+                      isInsideEvent={true}
+                      dateStr={effectiveDate}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setIsModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
