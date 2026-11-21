@@ -436,7 +436,7 @@ export const CalendarDayModal = ({
                     onEditEvent={onEditTask}
                     onOpenNewTaskForEvent={onOpenNewTaskForEvent}
                     onEditTask={onEditTask}
-                    initialExpanded={true}
+                    initialExpanded={false}
                     expandInline={true}
                   />
                 ))}

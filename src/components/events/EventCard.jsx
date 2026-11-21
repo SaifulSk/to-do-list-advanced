@@ -23,7 +23,7 @@ export const EventCard = ({
   onOpenNewTaskForEvent, 
   onEditTask,
   dateStr: propDateStr = null,
-  initialExpanded = true,
+  initialExpanded = false,
   expandInline = false
 }) => {
   const { 

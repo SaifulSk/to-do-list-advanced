@@ -64,26 +64,22 @@ export const TaskTableView = ({
   const [deleteSubtasksAlso, setDeleteSubtasksAlso] = useState(true);
   const [activeStepsTaskId, setActiveStepsTaskId] = useState(null);
   const [moveTargetTask, setMoveTargetTask] = useState(null);
-  const [collapsedEventIds, setCollapsedEventIds] = useState(() => new Set());
+  const [expandedEventIds, setExpandedEventIds] = useState(() => new Set());
 
   const tableEvents = useMemo(() => filteredTasks.filter((t) => t.isEvent), [filteredTasks]);
   const hasEvents = tableEvents.length > 0;
-  const areAllEventsExpanded = hasEvents && tableEvents.every((e) => !collapsedEventIds.has(e.id));
+  const areAllEventsExpanded = hasEvents && tableEvents.every((e) => expandedEventIds.has(e.id));
 
   const toggleExpandCollapseAll = () => {
     if (areAllEventsExpanded) {
-      setCollapsedEventIds(new Set(tableEvents.map((e) => e.id)));
+      setExpandedEventIds(new Set());
     } else {
-      setCollapsedEventIds((prev) => {
-        const next = new Set(prev);
-        tableEvents.forEach((e) => next.delete(e.id));
-        return next;
-      });
+      setExpandedEventIds(new Set(tableEvents.map((e) => e.id)));
     }
   };
 
   const toggleEventExpand = (eventId) => {
-    setCollapsedEventIds((prev) => {
+    setExpandedEventIds((prev) => {
       const next = new Set(prev);
       if (next.has(eventId)) next.delete(eventId);
       else next.add(eventId);
@@ -257,7 +253,7 @@ export const TaskTableView = ({
           {filteredTasks.map((task) => {
             // Case 1: Event Task Row in Table View
             if (task.isEvent) {
-              const isExpanded = !collapsedEventIds.has(task.id);
+              const isExpanded = expandedEventIds.has(task.id);
               const accentColor = task.color || '#6366f1';
               const isRecurringEvent = task.eventType === 'recurring' || Boolean(task.recurrence && task.recurrence !== 'none');
               const allChildTasks = tasks.filter((t) => t.eventId === task.id);
