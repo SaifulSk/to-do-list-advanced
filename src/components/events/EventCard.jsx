@@ -9,8 +9,6 @@ import {
   Trash2, 
   ChevronDown, 
   ChevronUp, 
-  ChevronRight,
-  ListChecks,
   AlertCircle,
   Plus,
   X
@@ -88,7 +86,7 @@ export const EventCard = ({
 
   return (
     <div 
-      className={`event-folder-card event-card ${isExpanded ? 'expanded' : ''}`}
+      className={`event-folder-card event-card ${(expandInline && isExpanded) ? 'expanded' : ''}`}
       style={{
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
@@ -237,17 +235,19 @@ export const EventCard = ({
             <Trash2 size={14} />
           </button>
 
-          {/* Expand/Collapse Chevron */}
-          <button 
-            type="button" 
-            className="btn-icon" 
-            style={{ width: '30px', height: '30px', color: 'var(--text-muted)' }}
-            onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? "Collapse" : "Expand"}
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
+          {/* Expand/Collapse Chevron (only if inline expansion is enabled) */}
+          {expandInline && (
+            <button 
+              type="button" 
+              className="btn-icon" 
+              style={{ width: '30px', height: '30px', color: 'var(--text-muted)' }}
+              onClick={() => setIsExpanded(!isExpanded)}
+              title={isExpanded ? "Collapse" : "Expand"}
+              aria-label={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -257,9 +257,13 @@ export const EventCard = ({
         style={{
           padding: '8px 18px 10px',
           borderTop: '1px solid var(--border-subtle)',
-          borderBottom: isExpanded ? '1px solid var(--border-subtle)' : 'none',
-          background: isExpanded ? 'var(--bg-surface-elevated)' : 'transparent'
+          borderBottom: (expandInline && isExpanded) ? '1px solid var(--border-subtle)' : 'none',
+          background: (expandInline && isExpanded) ? 'var(--bg-surface-elevated)' : 'transparent',
+          cursor: expandInline ? 'default' : 'pointer',
+          borderBottomLeftRadius: (expandInline && isExpanded) ? 0 : 'var(--radius-lg)',
+          borderBottomRightRadius: (expandInline && isExpanded) ? 0 : 'var(--radius-lg)'
         }}
+        onClick={expandInline ? undefined : () => setIsModalOpen(true)}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
